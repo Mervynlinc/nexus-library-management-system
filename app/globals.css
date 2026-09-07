@@ -1,26 +1,215 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/* ------------------------------------------------------------------ */
+/* Nexus design tokens                                                  */
+/* ------------------------------------------------------------------ */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Color palette (DESIGN.md §1) */
+  --color-bg: #f5f6fa;
+  --color-surface: #ffffff;
+  --color-border: #e7e9f0;
+  --color-primary: #2d8fe0;
+  --color-primary-hover: #2478c4;
+  --color-primary-tint: #eaf3fc;
+  --color-text-primary: #1e2433;
+  --color-text-secondary: #8a93a6;
+  --color-success: #3bb273;
+  --color-success-tint: #e7f8ef;
+  --color-danger: #e5484d;
+  --color-danger-tint: #fcebec;
+  --color-warning: #f5a623;
+  --color-accent-purple: #8b7fe8;
+  --color-accent-green: #3bb273;
+
+  /* Radius */
+  --radius-card: 20px;
+  --radius-control: 10px;
+  --radius-pill: 999px;
+
+  /* Shadows (login card only, DESIGN.md §3/§6) */
+  --shadow-card: 0 20px 40px rgba(20, 24, 40, 0.08);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Map tokens to Tailwind utility namespaces (DESIGN.md §1–2) */
+@theme {
+  --color-bg: #f5f6fa;
+  --color-surface: #ffffff;
+  --color-border: #e7e9f0;
+  --color-primary: #2d8fe0;
+  --color-primary-hover: #2478c4;
+  --color-primary-tint: #eaf3fc;
+  --color-text-primary: #1e2433;
+  --color-text-secondary: #8a93a6;
+  --color-success: #3bb273;
+  --color-success-tint: #e7f8ef;
+  --color-danger: #e5484d;
+  --color-danger-tint: #fcebec;
+  --color-warning: #f5a623;
+  --color-accent-purple: #8b7fe8;
+  --color-accent-green: #3bb273;
+
+  --font-sans: var(--font-geist-sans), -apple-system, "Segoe UI",
+    sans-serif;
+
+  --shadow-card: 0 20px 40px rgba(20, 24, 40, 0.08);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ------------------------------------------------------------------ */
+/* shadcn/ui semantic tokens (mapped onto the Nexus palette above)      */
+/* ------------------------------------------------------------------ */
+
+@theme {
+  /* Base surfaces */
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-text-primary);
+  --color-card: #ffffff;
+  --color-card-foreground: var(--color-text-primary);
+  --color-popover: #ffffff;
+  --color-popover-foreground: var(--color-text-primary);
+
+  /* Primary (Nexus blue) */
+  --color-primary: #2d8fe0;
+  --color-primary-foreground: #ffffff;
+  --color-primary-hover: #2478c4;
+
+  /* Secondary / neutral grays */
+  --color-secondary: #f0f2f7;
+  --color-secondary-foreground: var(--color-text-primary);
+  --color-muted: #f0f2f7;
+  --color-muted-foreground: var(--color-text-secondary);
+  --color-accent: var(--color-primary-tint);
+  --color-accent-foreground: var(--color-primary);
+  --color-destructive: var(--color-danger);
+  --color-destructive-foreground: #ffffff;
+
+  /* Lines & dividers */
+  --color-border: #e7e9f0;
+  --color-input: #e7e9f0;
+  --color-ring: var(--color-primary);
+
+  /* Charts (DESIGN.md §1 accents) */
+  --color-chart-1: #2d8fe0;
+  --color-chart-2: #3bb273;
+  --color-chart-3: #f5a623;
+  --color-chart-4: #8b7fe8;
+  --color-chart-5: #e5484d;
+
+  /* Sidebar — white panel matching DESIGN.md dashboard spec */
+  --color-sidebar: #ffffff;
+  --color-sidebar-foreground: var(--color-text-primary);
+  --color-sidebar-primary: var(--color-primary);
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-accent: var(--color-primary-tint);
+  --color-sidebar-accent-foreground: var(--color-primary);
+  --color-sidebar-border: #e7e9f0;
+  --color-sidebar-ring: var(--color-primary);
+
+  /* Radius (DESIGN.md §6: 10–14px, rounded but not playful) */
+  --radius: 0.75rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Animations required by shadcn primitives (dialogs, tooltips, sheets) */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+}
+
+/* Focus-visible ring shared across interactive controls (DESIGN.md §4) */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Error-state motion (functional feedback only, DESIGN.md §5 minimal)  */
+/* ------------------------------------------------------------------ */
+
+/* Red alert circle: pop in with a gentle bounce, then ring pulse. */
+@keyframes alert-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes alert-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(229, 72, 77, 0.35);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(229, 72, 77, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(229, 72, 77, 0);
+  }
+}
+
+.alert-circle {
+  animation:
+    alert-pop 350ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards,
+    alert-ring 1s 250ms ease-out 2;
+}
+
+/* Form shake on invalid submission. */
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-8px);
+  }
+  40%,
+  80% {
+    transform: translateX(8px);
+  }
+}
+
+.error-shake {
+  animation: shake 350ms ease-in-out;
+}
+
+/* Respect reduced-motion preferences (DESIGN.md §5 / a11y). */
+@media (prefers-reduced-motion: reduce) {
+  .alert-circle,
+  .error-shake {
+    animation: none;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
 }
