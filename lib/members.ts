@@ -11,6 +11,8 @@ export interface Member {
   email: string
   phone: string
   nationality: string
+  dateOfBirth: string | null
+  photoUrl: string | null
   membershipId: string
   createdAt: string
   updatedAt: string
@@ -23,6 +25,8 @@ export interface MemberFormValues {
   email: string
   phone: string
   nationality: string
+  dateOfBirth: string
+  photoUrl: string
   membershipId: string
 }
 
@@ -58,6 +62,8 @@ export function cleanMemberFormValues(
     email: normalizeEmail(values.email),
     phone: values.phone.replace(/[\u0000-\u001f\u007f]/g, "").trim(),
     nationality: cleanText(values.nationality),
+    dateOfBirth: values.dateOfBirth.trim(),
+    photoUrl: values.photoUrl.trim(),
     membershipId: values.membershipId.trim(),
   }
 }
@@ -67,15 +73,17 @@ export function memberToFormValues(
   nextMemberNumber = ""
 ): MemberFormValues {
   if (member) {
-    return {
-      memberNumber: member.memberNumber,
-      firstName: member.firstName,
-      lastName: member.lastName,
-      email: member.email,
-      phone: member.phone,
-      nationality: member.nationality,
-      membershipId: member.membershipId,
-    }
+return {
+    memberNumber: member.memberNumber,
+    firstName: member.firstName,
+    lastName: member.lastName,
+    email: member.email,
+    phone: member.phone,
+    nationality: member.nationality,
+    dateOfBirth: member.dateOfBirth ?? "",
+    photoUrl: member.photoUrl ?? "",
+    membershipId: member.membershipId,
+  }
   }
 
   return {
@@ -85,6 +93,8 @@ export function memberToFormValues(
     email: "",
     phone: "",
     nationality: "",
+    dateOfBirth: "",
+    photoUrl: "",
     membershipId: "",
   }
 }
@@ -98,6 +108,8 @@ export function memberFromFormValues(
   | "email"
   | "phone"
   | "nationality"
+  | "dateOfBirth"
+  | "photoUrl"
   | "membershipId"
 > {
   return {
@@ -106,6 +118,8 @@ export function memberFromFormValues(
     email: values.email,
     phone: values.phone,
     nationality: values.nationality,
+    dateOfBirth: values.dateOfBirth === "" ? null : values.dateOfBirth,
+    photoUrl: values.photoUrl === "" ? null : values.photoUrl,
     membershipId: values.membershipId,
   }
 }
@@ -166,6 +180,23 @@ export function validateMember(values: MemberFormValues): MemberFormErrors {
     errors.nationality = "Letters and spaces only."
   } else if (values.nationality.length > 60) {
     errors.nationality = "60 characters max."
+  }
+
+  const dateOfBirth = values.dateOfBirth.trim()
+  if (dateOfBirth) {
+    const parsed = new Date(`${dateOfBirth}T00:00:00.000Z`)
+    if (Number.isNaN(parsed.getTime())) {
+      errors.dateOfBirth = "Enter a valid date."
+    } else if (parsed.getTime() > Date.now()) {
+      errors.dateOfBirth = "Date of birth can't be in the future."
+    }
+  }
+
+  if (
+    values.photoUrl &&
+    !/^(https?:\/\/\S+|data:image\/[^;]+;base64,)/i.test(values.photoUrl)
+  ) {
+    errors.photoUrl = "Photo must be an image file."
   }
 
   if (!values.membershipId) {

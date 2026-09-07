@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/toast"
 import { Field } from "@/components/form/field"
 import { MembershipSelect } from "@/components/members/membership-select"
+import { PhotoUpload } from "@/components/members/photo-upload"
 import {
   cleanMemberFormValues,
   findDuplicateMember,
@@ -222,6 +223,43 @@ export function MemberFormDialog({
                     "h-11 rounded-[10px] bg-surface",
                     errors.nationality && "pr-44"
                   )}
+                />
+              </Field>
+
+              <Field
+                label="Date of birth"
+                htmlFor={`${uid}-dateOfBirth`}
+                error={errors.dateOfBirth}
+              >
+                <Input
+                  id={`${uid}-dateOfBirth`}
+                  type="date"
+                  value={values.dateOfBirth}
+                  onChange={(event) =>
+                    update("dateOfBirth", event.target.value)
+                  }
+                  disabled={isSaving}
+                  aria-invalid={Boolean(errors.dateOfBirth)}
+                  className={cn(
+                    "h-11 rounded-[10px] bg-surface",
+                    errors.dateOfBirth && "pr-44"
+                  )}
+                />
+              </Field>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label="Photo (optional)"
+                htmlFor={`${uid}-photoUrl`}
+                error={errors.photoUrl}
+              >
+                <PhotoUpload
+                  id={`${uid}-photoUrl`}
+                  value={values.photoUrl}
+                  onChange={(photoUrl) => update("photoUrl", photoUrl)}
+                  disabled={isSaving}
+                  error={Boolean(errors.photoUrl)}
                 />
               </Field>
 
