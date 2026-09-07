@@ -28,19 +28,19 @@ const STATS = [
     icon: Users,
   },
   {
-    label: "Issued",
+    label: "Issued Books",
     value: "28",
     accent: "bg-primary",
     icon: ArrowUpRight,
   },
   {
-    label: "Reserved",
+    label: "Reserved Books",
     value: "13",
     accent: "bg-warning",
     icon: Ticket,
   },
   {
-    label: "Overdue",
+    label: "Overdue Loans",
     value: "5",
     accent: "bg-danger",
     icon: Clock,
@@ -73,15 +73,6 @@ const ACTIVITY_FEED = [
 export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">
-          Library Management System
-        </h1>
-        <p className="text-sm text-text-secondary">
-          Overview of your library&apos;s activity.
-        </p>
-      </div>
-
       <div className="grid grid-cols-2 gap-5 md:grid-cols-3 xl:grid-cols-5">
         {STATS.map((stat) => {
           const Icon = stat.icon

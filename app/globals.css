@@ -200,10 +200,99 @@
   animation: shake 350ms ease-in-out;
 }
 
+/* ------------------------------------------------------------------ */
+/* Dialog: slides down from a single point at the top, reverses on     */
+/* close. The dialog is centered with top/left 50% + a translate, so   */
+/* the keyframes keep the -50% centering baked in at every frame.      */
+/* ------------------------------------------------------------------ */
+
+/* Resting position (also used when animations are disabled). */
+[data-slot="dialog-content"] {
+  transform: translate(-50%, -50%);
+}
+
+/* Open: compact point above the viewport → descends and expands into place. */
+[data-slot="dialog-content"][data-state="open"] {
+  animation: dialog-drop-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+
+/* Close: contracts upward back into that point. */
+[data-slot="dialog-content"][data-state="closed"] {
+  animation: dialog-drop-out 220ms cubic-bezier(0.55, 0, 0.85, 0.36) both;
+  will-change: transform, opacity;
+}
+
+@keyframes dialog-drop-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% - 24vh)) scale(0.6, 0.3);
+    transform-origin: top center;
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1, 1);
+    transform-origin: top center;
+  }
+}
+
+@keyframes dialog-drop-out {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1, 1);
+    transform-origin: top center;
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% - 24vh)) scale(0.6, 0.3);
+    transform-origin: top center;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Toast: slides in from the right edge, slides out the same way.     */
+/* ------------------------------------------------------------------ */
+
+.toast-enter {
+  animation: toast-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+
+.toast-leave {
+  animation: toast-out 220ms cubic-bezier(0.55, 0, 0.85, 0.36) both;
+  will-change: transform, opacity;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(120%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(120%);
+  }
+}
+
 /* Respect reduced-motion preferences (DESIGN.md §5 / a11y). */
 @media (prefers-reduced-motion: reduce) {
   .alert-circle,
-  .error-shake {
+  .error-shake,
+  .toast-enter,
+  .toast-leave,
+  [data-slot="dialog-content"],
+  [data-slot="dialog-overlay"] {
     animation: none;
   }
 }
