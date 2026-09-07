@@ -32,6 +32,12 @@ function membershipName(membershipId: string): string {
   )
 }
 
+function memberInitials(member: Member): string {
+  const first = member.firstName.trim().charAt(0)
+  const last = member.lastName.trim().charAt(0)
+  return `${first}${last}`.toUpperCase() || "?"
+}
+
 function Pagination({
   page,
   totalItems,
@@ -305,8 +311,8 @@ export default function MembersPage() {
         <table className="w-full table-fixed text-sm">
           <thead>
             <tr className="border-b border-border">
-              <th className="w-28 px-5 py-3 text-left text-[12px] font-medium text-text-secondary">
-                Member №
+              <th className="w-14 px-5 py-3 text-left text-[12px] font-medium text-text-secondary">
+                Photo
               </th>
               <th className="px-4 py-3 text-left text-[12px] font-medium text-text-secondary">
                 Name
@@ -351,8 +357,22 @@ export default function MembersPage() {
                   key={member.id}
                   className="transition-colors duration-150 hover:bg-muted/50"
                 >
-                  <td className="px-5 py-3 text-text-secondary tabular-nums">
-                    {member.memberNumber}
+                  <td className="px-5 py-3">
+                    {member.photoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={member.photoUrl}
+                        alt={`${member.firstName} ${member.lastName}`}
+                        className="size-9 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        className="bg-primary-tint flex size-9 items-center justify-center rounded-full text-xs font-medium text-primary"
+                      >
+                        {memberInitials(member)}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <span className="block truncate font-medium text-text-primary">
