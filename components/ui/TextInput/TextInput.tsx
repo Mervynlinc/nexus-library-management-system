@@ -17,17 +17,30 @@ export default function TextInput({
   const autoId = useId();
   const inputId = id ?? autoId;
   const errorId = `${inputId}-error`;
+  const hasError = Boolean(error);
+  const hasTrailing = Boolean(trailing);
+
+  /* Right padding clears the error message/circle and the trailing slot so
+     typed text never runs underneath them. Only increases while an error is
+     active, so the idle layout is unchanged. */
+  const rightPadding = hasError
+    ? hasTrailing
+      ? "pr-52"
+      : "pr-44"
+    : hasTrailing
+      ? "pr-12"
+      : "";
 
   const inputClasses = [
     "w-full h-11 rounded-[10px] bg-surface px-4 text-sm text-text-primary",
     "border transition-colors duration-150 ease-out",
     "placeholder:text-text-secondary",
     "disabled:opacity-50 disabled:cursor-not-allowed",
-    error
+    hasError
       ? "border-danger focus:border-danger"
       : "border-border focus:border-primary",
     "focus:outline-none",
-    trailing ? "pr-12" : "",
+    rightPadding,
     className,
   ]
     .filter(Boolean)
@@ -38,25 +51,58 @@ export default function TextInput({
       <label htmlFor={inputId} className="text-[13px] font-medium text-text-secondary">
         {label}
       </label>
+
       <div className="relative">
         <input
           id={inputId}
           className={inputClasses}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? errorId : undefined}
+          aria-invalid={hasError || undefined}
+          aria-describedby={hasError ? errorId : undefined}
           {...rest}
         />
-        {trailing ? (
-          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-            {trailing}
+
+        {hasError || hasTrailing ? (
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1.5 overflow-hidden pr-3">
+            {hasError ? (
+              <>
+                <span
+                  aria-hidden="true"
+                  className="alert-circle flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-danger"
+                >
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M12 7v6m0 4h.01"
+                      stroke="white"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+                <span
+                  id={errorId}
+                  role="alert"
+                  className="whitespace-nowrap text-xs font-medium text-danger"
+                >
+                  {error}
+                </span>
+              </>
+            ) : null}
+
+            {hasTrailing ? (
+              <div className="pointer-events-auto flex shrink-0">
+                {trailing}
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
-      {error ? (
-        <p id={errorId} className="text-xs text-danger">
-          {error}
-        </p>
-      ) : null}
     </div>
   );
 }

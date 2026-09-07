@@ -4,25 +4,39 @@ import { useState, type FormEvent } from "react";
 import Image from "next/image";
 import Button from "@/components/ui/Button/Button";
 import TextInput from "@/components/ui/TextInput/TextInput";
-import Checkbox from "@/components/ui/Checkbox/Checkbox";
 
 interface LoginFormState {
   username: string;
   password: string;
-  remember: boolean;
+}
+
+const ERROR_MESSAGES = {
+  usernameRequired: "Username is required.",
+  passwordRequired: "Password is required.",
+  invalid: "Invalid username or password.",
+};
+
+/**
+ * Stub only — no backend/auth exists yet (see AGENTS.md build order).
+ * Replaced by a real POST /api/login once the Express server is built.
+ * Currently always rejects so the invalid-credentials error state renders.
+ */
+function loginRequest(payload: LoginFormState): Promise<void> {
+  console.log("login payload:", payload);
+  return Promise.reject(new Error(ERROR_MESSAGES.invalid));
 }
 
 export default function LoginPage() {
   const [form, setForm] = useState<LoginFormState>({
     username: "",
     password: "",
-    remember: false,
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{
     username?: string;
     password?: string;
   }>({});
+  const [isShaking, setIsShaking] = useState(false);
 
   function update<K extends keyof LoginFormState>(
     key: K,
@@ -32,28 +46,37 @@ export default function LoginPage() {
     setErrors((prev) => ({ ...prev, [key]: undefined }));
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const nextErrors: typeof errors = {};
     if (!form.username.trim()) {
-      nextErrors.username = "Username is required.";
+      nextErrors.username = ERROR_MESSAGES.usernameRequired;
     }
     if (!form.password) {
-      nextErrors.password = "Password is required.";
+      nextErrors.password = ERROR_MESSAGES.passwordRequired;
     }
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
+      setIsShaking(true);
       return;
     }
 
-    console.log({ ...form, password: "********" });
+    try {
+      await loginRequest(form);
+    } catch (err) {
+      setErrors({
+        password:
+          err instanceof Error ? err.message : ERROR_MESSAGES.invalid,
+      });
+      setIsShaking(true);
+    }
   }
 
   return (
     <main className="flex h-screen items-center justify-center overflow-hidden bg-bg p-6 font-sans">
-      <div className="flex w-full max-w-3xl overflow-hidden rounded-[20px] bg-surface shadow-card">
+      <div className="flex w-full max-w-4xl bg-surface shadow-card">
         <div className="relative hidden w-[40%] self-stretch md:block">
           <Image
             src="/images/shelf.webp"
@@ -64,15 +87,15 @@ export default function LoginPage() {
           />
         </div>
 
-        <div className="w-full px-8 py-10 md:w-[60%] md:px-12">
+        <div className="w-full px-8 py-12 md:w-[60%] md:px-12">
           <div className="flex items-center gap-2.5">
             <span
               aria-hidden="true"
-              className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-primary"
+              className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-primary"
             >
               <svg
-                width="18"
-                height="18"
+                width="20"
+                height="20"
                 viewBox="0 0 24 24"
                 fill="none"
                 aria-hidden="true"
@@ -92,20 +115,27 @@ export default function LoginPage() {
                 <circle cx="7" cy="6" r="1" fill="white" />
               </svg>
             </span>
-            <span className="text-base font-semibold text-text-primary">
+            <span className="text-lg font-semibold text-text-primary">
               Nexus Library Management System
             </span>
           </div>
 
-          <h1 className="mt-5 text-xl font-semibold text-text-primary">
+          <h1 className="mt-8 text-[22px] font-semibold text-text-primary">
             Login to your account
           </h1>
-          <p className="mt-1.5 text-sm text-text-secondary">
+          <p className="mt-2 text-sm text-text-secondary">
             Welcome back. Enter your credentials to sign in.
           </p>
 
           <form
-            className="mt-6 flex flex-col gap-4"
+            onAnimationEnd={(e) => {
+              if (e.animationName === "shake") {
+                setIsShaking(false);
+              }
+            }}
+            className={`mt-8 flex flex-col gap-5 ${
+              isShaking ? "error-shake" : ""
+            }`}
             noValidate
             onSubmit={handleSubmit}
           >
@@ -192,12 +222,12 @@ export default function LoginPage() {
               }
             />
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center">
               <a
                 href="#"
                 className="text-sm font-medium text-primary transition-colors duration-150 ease-out hover:text-primary-hover"
               >
-                Forgot password? - Please contact administrator
+                Forgot Password? - Contact administrator
               </a>
             </div>
 
