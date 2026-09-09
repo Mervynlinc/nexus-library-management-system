@@ -17,13 +17,14 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/toast"
 import { DeleteBookDialog } from "@/components/books/delete-book-dialog"
 import { BookFormDialog } from "@/components/books/book-form-dialog"
-import { LendBookDialog } from "@/components/books/lend-book-dialog"
+import { LoanFormDialog } from "@/components/loans/loan-form-dialog"
 import {
   bookFromFormValues,
   type Book,
   type BookFormValues,
 } from "@/lib/books"
 import { SEED_BOOKS } from "@/lib/mocks/books"
+import { SEED_MEMBERS } from "@/lib/mocks/members"
 
 const PAGE_SIZE = 8
 
@@ -105,6 +106,8 @@ export default function BooksPage() {
   const [editingBook, setEditingBook] = useState<Book | null>(null)
   const [deletingBook, setDeletingBook] = useState<Book | null>(null)
   const [lendingBook, setLendingBook] = useState<Book | null>(null)
+  const [loanFormOpen, setLoanFormOpen] = useState(false)
+  const [loanFormKey, setLoanFormKey] = useState(0)
   const toast = useToast()
 
   const query = search.trim().toLowerCase()
@@ -228,25 +231,35 @@ export default function BooksPage() {
     })
   }
 
-  function handleLend() {
+  function openLend(book: Book) {
+    if (book.availableCopies === 0) return
+    setLendingBook(book)
+    setLoanFormKey((key) => key + 1)
+    setLoanFormOpen(true)
+  }
+
+  function handleLendSubmit() {
     if (lendingBook === null || lendingBook.availableCopies === 0) return
     const lent = lendingBook
+    const now = new Date().toISOString()
+
     setBooks((previous) =>
       previous.map((book) =>
         book.id === lent.id
           ? {
               ...book,
               availableCopies: book.availableCopies - 1,
-              updatedAt: new Date().toISOString(),
+              updatedAt: now,
             }
           : book
       )
     )
     setLendingBook(null)
+    setLoanFormOpen(false)
     toast({
       variant: "success",
       title: "Copy lent",
-      description: `"${lent.title}" — ${lent.availableCopies - 1} of ${lent.totalCopies} copies available.`,
+      description: `"${lent.title}" issued. ${lent.availableCopies - 1} of ${lent.totalCopies} copies available.`,
     })
   }
 
@@ -403,7 +416,7 @@ export default function BooksPage() {
                         variant="ghost"
                         size="icon"
                         disabled={book.availableCopies === 0}
-                        onClick={() => setLendingBook(book)}
+                        onClick={() => openLend(book)}
                         aria-label={`Lend ${book.title}`}
                         title={
                           book.availableCopies === 0
@@ -455,12 +468,18 @@ export default function BooksPage() {
         onOpenChange={setFormOpen}
         onSubmit={handleSubmit}
       />
-      <LendBookDialog
-        book={lendingBook}
+      <LoanFormDialog
+        key={loanFormKey}
+        open={loanFormOpen}
+        loan={null}
+        books={books}
+        members={SEED_MEMBERS}
+        defaultBookId={lendingBook?.id}
         onOpenChange={(open) => {
+          setLoanFormOpen(open)
           if (!open) setLendingBook(null)
         }}
-        onConfirm={handleLend}
+        onSubmit={handleLendSubmit}
       />
       <DeleteBookDialog
         book={deletingBook}

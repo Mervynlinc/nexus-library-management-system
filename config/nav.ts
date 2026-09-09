@@ -1,12 +1,10 @@
 import {
   BookOpen,
-  Boxes,
   CircleDollarSign,
   ClipboardList,
   LayoutDashboard,
   Repeat,
   Stamp,
-  Ticket,
   Users,
   UsersRound,
 } from "lucide-react"
@@ -29,19 +27,9 @@ export const dashboardNav: NavItem[] = [
     icon: BookOpen,
   },
   {
-    title: "Copies / Inventory",
-    url: "/copies",
-    icon: Boxes,
-  },
-  {
-    title: "Circulation",
+    title: "Loans",
     url: "/circulation",
     icon: Repeat,
-  },
-  {
-    title: "Reservations",
-    url: "/reservations",
-    icon: Ticket,
   },
   {
     title: "Members",
