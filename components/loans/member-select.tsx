@@ -4,38 +4,38 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Check, ChevronDown, Search } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import type { Publisher } from "@/lib/books"
+import type { Member } from "@/lib/members"
 
-interface PublisherSelectProps {
-  publishers: Publisher[]
+interface MemberSelectProps {
+  members: Member[]
   value: string
-  onChange: (publisherId: string) => void
+  onChange: (memberId: string) => void
   error?: boolean
   disabled?: boolean
   id?: string
 }
 
-export function PublisherSelect({
-  publishers,
+export function MemberSelect({
+  members,
   value,
   onChange,
   error,
   disabled,
   id,
-}: PublisherSelectProps) {
+}: MemberSelectProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const selected = publishers.find((publisher) => publisher.id === value) ?? null
+  const selected = members.find((member) => member.id === value) ?? null
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
-    if (!needle) return publishers
-    return publishers.filter((publisher) =>
-      publisher.name.toLowerCase().includes(needle)
+    if (!needle) return members
+    return members.filter((member) =>
+      `${member.firstName} ${member.lastName}`.toLowerCase().includes(needle)
     )
-  }, [publishers, query])
+  }, [members, query])
 
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
@@ -50,9 +50,10 @@ export function PublisherSelect({
     return () => document.removeEventListener("pointerdown", handlePointerDown)
   }, [])
 
-  function selectPublisher(publisherId: string) {
-    onChange(publisherId)
+  function selectMember(memberId: string) {
+    onChange(memberId)
     setOpen(false)
+    setQuery("")
   }
 
   return (
@@ -75,7 +76,9 @@ export function PublisherSelect({
             selected ? "text-text-primary" : "text-text-secondary"
           )}
         >
-          {selected ? selected.name : "Select publisher"}
+          {selected
+            ? `${selected.firstName} ${selected.lastName}`
+            : "Select a member"}
         </span>
         <ChevronDown
           className={cn(
@@ -96,11 +99,11 @@ export function PublisherSelect({
               onKeyDown={(event) => {
                 if (event.key === "Escape") setOpen(false)
                 if (event.key === "Enter" && filtered[0]) {
-                  selectPublisher(filtered[0].id)
+                  selectMember(filtered[0].id)
                 }
               }}
-              placeholder="Search publishers"
-              aria-label="Search publishers"
+              placeholder="Search members"
+              aria-label="Search members"
               className="h-11 w-full rounded-t-[10px] bg-bg pr-3 pl-9 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none"
             />
           </div>
@@ -108,18 +111,19 @@ export function PublisherSelect({
           <ul role="listbox" className="max-h-56 overflow-y-auto p-1">
             {filtered.length === 0 ? (
               <li className="px-3 py-6 text-center text-sm text-text-secondary">
-                No publishers match &quot;{query}&quot;.
+                No members match &quot;{query}&quot;.
               </li>
             ) : (
-              filtered.map((publisher) => {
-                const isSelected = publisher.id === value
+              filtered.map((member) => {
+                const isSelected = member.id === value
+                const fullName = `${member.firstName} ${member.lastName}`
                 return (
-                  <li key={publisher.id}>
+                  <li key={member.id}>
                     <button
                       type="button"
                       role="option"
                       aria-selected={isSelected}
-                      onClick={() => selectPublisher(publisher.id)}
+                      onClick={() => selectMember(member.id)}
                       className={cn(
                         "flex w-full items-center justify-between gap-2 rounded-[8px] px-3 py-2 text-left text-sm text-text-primary transition-colors duration-150 ease-out",
                         isSelected
@@ -127,7 +131,7 @@ export function PublisherSelect({
                           : "hover:bg-primary-tint/60"
                       )}
                     >
-                      <span className="truncate">{publisher.name}</span>
+                      <span className="truncate">{fullName}</span>
                       {isSelected ? <Check className="size-4 shrink-0" /> : null}
                     </button>
                   </li>

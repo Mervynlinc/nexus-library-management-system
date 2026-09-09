@@ -4,38 +4,38 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Check, ChevronDown, Search } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import type { Publisher } from "@/lib/books"
+import type { Book } from "@/lib/books"
 
-interface PublisherSelectProps {
-  publishers: Publisher[]
+interface BookSelectProps {
+  books: Book[]
   value: string
-  onChange: (publisherId: string) => void
+  onChange: (bookId: string) => void
   error?: boolean
   disabled?: boolean
   id?: string
 }
 
-export function PublisherSelect({
-  publishers,
+export function BookSelect({
+  books,
   value,
   onChange,
   error,
   disabled,
   id,
-}: PublisherSelectProps) {
+}: BookSelectProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const selected = publishers.find((publisher) => publisher.id === value) ?? null
+  const selected = books.find((book) => book.id === value) ?? null
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
-    if (!needle) return publishers
-    return publishers.filter((publisher) =>
-      publisher.name.toLowerCase().includes(needle)
+    if (!needle) return books
+    return books.filter((book) =>
+      book.title.toLowerCase().includes(needle)
     )
-  }, [publishers, query])
+  }, [books, query])
 
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
@@ -50,9 +50,10 @@ export function PublisherSelect({
     return () => document.removeEventListener("pointerdown", handlePointerDown)
   }, [])
 
-  function selectPublisher(publisherId: string) {
-    onChange(publisherId)
+  function selectBook(bookId: string) {
+    onChange(bookId)
     setOpen(false)
+    setQuery("")
   }
 
   return (
@@ -75,7 +76,7 @@ export function PublisherSelect({
             selected ? "text-text-primary" : "text-text-secondary"
           )}
         >
-          {selected ? selected.name : "Select publisher"}
+          {selected ? selected.title : "Select a book"}
         </span>
         <ChevronDown
           className={cn(
@@ -96,11 +97,11 @@ export function PublisherSelect({
               onKeyDown={(event) => {
                 if (event.key === "Escape") setOpen(false)
                 if (event.key === "Enter" && filtered[0]) {
-                  selectPublisher(filtered[0].id)
+                  selectBook(filtered[0].id)
                 }
               }}
-              placeholder="Search publishers"
-              aria-label="Search publishers"
+              placeholder="Search books"
+              aria-label="Search books"
               className="h-11 w-full rounded-t-[10px] bg-bg pr-3 pl-9 text-sm text-text-primary placeholder:text-text-secondary focus:outline-none"
             />
           </div>
@@ -108,18 +109,18 @@ export function PublisherSelect({
           <ul role="listbox" className="max-h-56 overflow-y-auto p-1">
             {filtered.length === 0 ? (
               <li className="px-3 py-6 text-center text-sm text-text-secondary">
-                No publishers match &quot;{query}&quot;.
+                No books match &quot;{query}&quot;.
               </li>
             ) : (
-              filtered.map((publisher) => {
-                const isSelected = publisher.id === value
+              filtered.map((book) => {
+                const isSelected = book.id === value
                 return (
-                  <li key={publisher.id}>
+                  <li key={book.id}>
                     <button
                       type="button"
                       role="option"
                       aria-selected={isSelected}
-                      onClick={() => selectPublisher(publisher.id)}
+                      onClick={() => selectBook(book.id)}
                       className={cn(
                         "flex w-full items-center justify-between gap-2 rounded-[8px] px-3 py-2 text-left text-sm text-text-primary transition-colors duration-150 ease-out",
                         isSelected
@@ -127,7 +128,7 @@ export function PublisherSelect({
                           : "hover:bg-primary-tint/60"
                       )}
                     >
-                      <span className="truncate">{publisher.name}</span>
+                      <span className="truncate">{book.title}</span>
                       {isSelected ? <Check className="size-4 shrink-0" /> : null}
                     </button>
                   </li>
