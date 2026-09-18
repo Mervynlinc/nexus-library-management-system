@@ -1,3 +1,5 @@
+import { cleanText } from "@/lib/utils"
+
 export interface Publisher {
   id: string
   name: string
@@ -22,13 +24,6 @@ export interface PublisherFormValues {
 export type PublisherFormErrors = Partial<
   Record<keyof PublisherFormValues, string>
 >
-
-export function cleanText(value: string): string {
-  return value
-    .replace(/[\u0000-\u001f\u007f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-}
 
 export function cleanPublisherFormValues(
   values: PublisherFormValues

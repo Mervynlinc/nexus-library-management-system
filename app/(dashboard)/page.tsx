@@ -13,6 +13,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { ActivityFeed } from "@/components/dashboard/activity-feed"
+import { ActivityChart } from "@/components/dashboard/activity-chart"
 
 const STATS = [
   {
@@ -44,29 +46,6 @@ const STATS = [
     value: "5",
     accent: "bg-danger",
     icon: Clock,
-  },
-]
-
-const ACTIVITY_FEED = [
-  {
-    text: "J. Carter returned \"The Pragmatic Programmer\"",
-    time: "2 min ago",
-  },
-  {
-    text: "New member M. Okoro registered",
-    time: "18 min ago",
-  },
-  {
-    text: "Book #B-034 checked out to A. Silva",
-    time: "1 hr ago",
-  },
-  {
-    text: "Fine of $2.50 waived for member P. Novak",
-    time: "3 hrs ago",
-  },
-  {
-    text: "3 copies added to \"Clean Architecture\"",
-    time: "Yesterday",
   },
 ]
 
@@ -103,30 +82,12 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>Library Activity</CardTitle>
             <CardDescription>
-              Issued, returned and overdue items over time.
+              Logged actions over the current week. Each action adds to the
+              day&apos;s bar.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex h-64 items-end gap-4 border-b border-border">
-              {[40, 65, 50, 80, 60, 90, 72].map((height, i) => (
-                <div
-                  key={i}
-                  className={`flex-1 rounded-t-md ${
-                    i % 2 === 0 ? "bg-primary/80" : "bg-primary-tint"
-                  }`}
-                  style={{ height: `${height}%` }}
-                />
-              ))}
-            </div>
-            <div className="mt-2 flex justify-between text-xs text-text-secondary">
-              <span>Mon</span>
-              <span>Tue</span>
-              <span>Wed</span>
-              <span>Thu</span>
-              <span>Fri</span>
-              <span>Sat</span>
-              <span>Sun</span>
-            </div>
+            <ActivityChart />
           </CardContent>
         </Card>
 
@@ -135,15 +96,8 @@ export default function DashboardPage() {
             <CardTitle>Activity Feed</CardTitle>
             <CardDescription>Latest actions in the library.</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {ACTIVITY_FEED.map((item, i) => (
-              <div key={i} className="flex flex-col gap-1">
-                <p className="text-sm text-text-primary">{item.text}</p>
-                <span className="text-xs text-text-secondary">
-                  {item.time}
-                </span>
-              </div>
-            ))}
+          <CardContent>
+            <ActivityFeed />
           </CardContent>
         </Card>
       </div>

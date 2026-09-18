@@ -29,12 +29,15 @@ import {
 } from "@/lib/loans"
 import type { Book } from "@/lib/books"
 import type { Member } from "@/lib/members"
+import type { MembershipPlan } from "@/lib/membership-plans"
 
 interface LoanFormDialogProps {
   open: boolean
   loan: Loan | null
   books: Book[]
   members: Member[]
+  loans: Loan[]
+  plans: MembershipPlan[]
   defaultBookId?: string
   onOpenChange: (open: boolean) => void
   onSubmit: (values: LoanFormValues) => Promise<void> | void
@@ -45,6 +48,8 @@ export function LoanFormDialog({
   loan,
   books,
   members,
+  loans,
+  plans,
   defaultBookId,
   onOpenChange,
   onSubmit,
@@ -74,8 +79,23 @@ export function LoanFormDialog({
     event.preventDefault()
     if (isSaving) return
 
+    if (loan?.status === "returned") {
+      toast({
+        variant: "error",
+        title: "Loan already returned",
+        description: "Returned loans can't be edited.",
+      })
+      return
+    }
+
     const cleaned = cleanLoanFormValues(values)
-    const nextErrors = validateLoan(cleaned)
+    const nextErrors = validateLoan(cleaned, {
+      books,
+      members,
+      loans,
+      plans,
+      editingId: loan?.id,
+    })
     setErrors(nextErrors)
     if (!isLoanFormValid(nextErrors)) {
       toast({
