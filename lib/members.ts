@@ -1,3 +1,5 @@
+import { cleanText } from "@/lib/utils"
+
 export interface MembershipPlan {
   id: string
   name: string
@@ -31,13 +33,6 @@ export interface MemberFormValues {
 }
 
 export type MemberFormErrors = Partial<Record<keyof MemberFormValues, string>>
-
-export function cleanText(value: string): string {
-  return value
-    .replace(/[\u0000-\u001f\u007f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-}
 
 export function normalizeEmail(value: string): string {
   return value.trim().toLowerCase()

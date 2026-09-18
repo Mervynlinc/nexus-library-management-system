@@ -12,6 +12,7 @@ import {
 import { CircleAlert, CircleCheck, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { addActivity } from "@/lib/activity"
 
 export type ToastVariant = "success" | "error"
 
@@ -52,6 +53,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const show = useCallback(
     (action: ToastAction) => {
+      addActivity(action)
       const id = nextId.current
       nextId.current += 1
       setToasts((previous) => [{ ...action, id, leaving: false }, ...previous])

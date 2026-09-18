@@ -1,3 +1,5 @@
+import { cleanText } from "@/lib/utils"
+
 export interface Author {
   id: string
   firstName: string
@@ -20,13 +22,6 @@ export interface AuthorFormValues {
 }
 
 export type AuthorFormErrors = Partial<Record<keyof AuthorFormValues, string>>
-
-export function cleanText(value: string): string {
-  return value
-    .replace(/[\u0000-\u001f\u007f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-}
 
 export function cleanAuthorFormValues(
   values: AuthorFormValues

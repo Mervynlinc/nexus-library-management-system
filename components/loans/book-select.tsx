@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Check, ChevronDown, Search } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import type { Book } from "@/lib/books"
+import { normalizeIsbn, type Book } from "@/lib/books"
 
 interface BookSelectProps {
   books: Book[]
@@ -30,10 +30,14 @@ export function BookSelect({
   const selected = books.find((book) => book.id === value) ?? null
 
   const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase()
+    const needle = query.trim()
     if (!needle) return books
-    return books.filter((book) =>
-      book.title.toLowerCase().includes(needle)
+    const needleLower = needle.toLowerCase()
+    const isbnNeedle = normalizeIsbn(needle)
+    return books.filter(
+      (book) =>
+        book.title.toLowerCase().includes(needleLower) ||
+        (isbnNeedle.length > 0 && normalizeIsbn(book.isbn).includes(isbnNeedle))
     )
   }, [books, query])
 
@@ -128,7 +132,12 @@ export function BookSelect({
                           : "hover:bg-primary-tint/60"
                       )}
                     >
-                      <span className="truncate">{book.title}</span>
+                      <span className="flex min-w-0 flex-col">
+                        <span className="truncate">{book.title}</span>
+                        <span className="truncate text-xs text-text-secondary">
+                          {book.isbn}
+                        </span>
+                      </span>
                       {isSelected ? <Check className="size-4 shrink-0" /> : null}
                     </button>
                   </li>

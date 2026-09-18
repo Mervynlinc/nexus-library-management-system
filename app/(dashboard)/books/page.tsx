@@ -23,8 +23,15 @@ import {
   type Book,
   type BookFormValues,
 } from "@/lib/books"
+import {
+  loanFromFormValues,
+  type Loan,
+  type LoanFormValues,
+} from "@/lib/loans"
 import { SEED_BOOKS } from "@/lib/mocks/books"
 import { SEED_MEMBERS } from "@/lib/mocks/members"
+import { SEED_LOANS } from "@/lib/mocks/loans-seed"
+import { SEED_MEMBERSHIP_PLANS } from "@/lib/mocks/membership-plans-seed"
 
 const PAGE_SIZE = 8
 
@@ -108,6 +115,7 @@ export default function BooksPage() {
   const [lendingBook, setLendingBook] = useState<Book | null>(null)
   const [loanFormOpen, setLoanFormOpen] = useState(false)
   const [loanFormKey, setLoanFormKey] = useState(0)
+  const [loans, setLoans] = useState<Loan[]>(SEED_LOANS)
   const toast = useToast()
 
   const query = search.trim().toLowerCase()
@@ -238,11 +246,22 @@ export default function BooksPage() {
     setLoanFormOpen(true)
   }
 
-  function handleLendSubmit() {
+  async function handleLendSubmit(values: LoanFormValues) {
     if (lendingBook === null || lendingBook.availableCopies === 0) return
     const lent = lendingBook
     const now = new Date().toISOString()
+    await new Promise((resolve) => setTimeout(resolve, 700))
+    const fields = loanFromFormValues(values)
 
+    setLoans((previous) => [
+      {
+        id: crypto.randomUUID(),
+        ...fields,
+        createdAt: now,
+        updatedAt: now,
+      },
+      ...previous,
+    ])
     setBooks((previous) =>
       previous.map((book) =>
         book.id === lent.id
@@ -474,6 +493,8 @@ export default function BooksPage() {
         loan={null}
         books={books}
         members={SEED_MEMBERS}
+        loans={loans}
+        plans={SEED_MEMBERSHIP_PLANS}
         defaultBookId={lendingBook?.id}
         onOpenChange={(open) => {
           setLoanFormOpen(open)

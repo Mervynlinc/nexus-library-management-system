@@ -1,3 +1,7 @@
+import type { Book } from "@/lib/books"
+import type { Member } from "@/lib/members"
+import type { MembershipPlan } from "@/lib/membership-plans"
+
 export type LoanStatus = "active" | "returned" | "overdue"
 
 export interface Loan {
@@ -21,11 +25,12 @@ export interface LoanFormValues {
 
 export type LoanFormErrors = Partial<Record<keyof LoanFormValues, string>>
 
-export function cleanText(value: string): string {
-  return value
-    .replace(/[\u0000-\u001f\u007f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
+export interface LoanValidationContext {
+  books: Book[]
+  members: Member[]
+  loans: Loan[]
+  plans: MembershipPlan[]
+  editingId?: string
 }
 
 export function cleanLoanFormValues(values: LoanFormValues): LoanFormValues {
@@ -69,7 +74,10 @@ export function loanFromFormValues(
   }
 }
 
-export function validateLoan(values: LoanFormValues): LoanFormErrors {
+export function validateLoan(
+  values: LoanFormValues,
+  ctx?: LoanValidationContext
+): LoanFormErrors {
   const errors: LoanFormErrors = {}
 
   if (!values.bookId) {
@@ -86,6 +94,8 @@ export function validateLoan(values: LoanFormValues): LoanFormErrors {
     const parsed = new Date(`${values.issueDate}T00:00:00.000Z`)
     if (Number.isNaN(parsed.getTime())) {
       errors.issueDate = "Enter a valid date."
+    } else if (parsed.getTime() > Date.now()) {
+      errors.issueDate = "Issue date can't be in the future."
     }
   }
 
@@ -102,6 +112,49 @@ export function validateLoan(values: LoanFormValues): LoanFormErrors {
         parsed.getTime() <= issue.getTime()
       ) {
         errors.dueDate = "Due date must be after the issue date."
+      }
+    }
+  }
+
+  if (ctx) {
+    const editingId = ctx.editingId
+
+    if (values.bookId) {
+      const book = ctx.books.find((b) => b.id === values.bookId)
+      if (!book) {
+        errors.bookId = "Select a valid book."
+      } else {
+        const outstandingForBook = ctx.loans.filter(
+          (loan) =>
+            loan.bookId === book.id &&
+            loan.status !== "returned" &&
+            loan.id !== editingId
+        ).length
+        if (outstandingForBook >= book.availableCopies) {
+          errors.bookId = "No copies of this book are available."
+        }
+      }
+    }
+
+    if (values.memberId) {
+      const member = ctx.members.find((m) => m.id === values.memberId)
+      if (!member) {
+        errors.memberId = "Select a valid member."
+      } else {
+        const plan = ctx.plans.find((p) => p.id === member.membershipId)
+        if (!plan) {
+          errors.memberId = "Member's membership plan is invalid."
+        } else {
+          const outstandingForMember = ctx.loans.filter(
+            (loan) =>
+              loan.memberId === member.id &&
+              loan.status !== "returned" &&
+              loan.id !== editingId
+          ).length
+          if (outstandingForMember + 1 > plan.borrowingLimit) {
+            errors.memberId = `${member.firstName} ${member.lastName} has reached the borrowing limit of ${plan.borrowingLimit} book${plan.borrowingLimit === 1 ? "" : "s"}.`
+          }
+        }
       }
     }
   }

@@ -1,3 +1,5 @@
+import { cleanText } from "@/lib/utils"
+
 export interface Publisher {
   id: string
   name: string
@@ -35,13 +37,6 @@ export type BookFormErrors = Partial<Record<keyof BookFormValues, string>>
 
 export function normalizeIsbn(value: string): string {
   return value.replace(/[\s-]/g, "").toUpperCase()
-}
-
-export function cleanText(value: string): string {
-  return value
-    .replace(/[\u0000-\u001f\u007f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
 }
 
 export function toDigits(value: string): string {

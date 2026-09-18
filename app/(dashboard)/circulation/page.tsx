@@ -27,6 +27,7 @@ import {
 import { SEED_BOOKS } from "@/lib/mocks/books"
 import { SEED_MEMBERS } from "@/lib/mocks/members"
 import { SEED_LOANS } from "@/lib/mocks/loans-seed"
+import { SEED_MEMBERSHIP_PLANS } from "@/lib/mocks/membership-plans-seed"
 
 const PAGE_SIZE = 8
 
@@ -412,15 +413,17 @@ export default function CirculationPage() {
                             <RotateCcw />
                           </Button>
                         ) : null}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEdit(loan)}
-                          aria-label="Edit loan"
-                          className="text-text-secondary hover:text-primary"
-                        >
-                          <Pencil />
-                        </Button>
+                        {loan.status !== "returned" ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEdit(loan)}
+                            aria-label="Edit loan"
+                            className="text-text-secondary hover:text-primary"
+                          >
+                            <Pencil />
+                          </Button>
+                        ) : null}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -452,6 +455,8 @@ export default function CirculationPage() {
         loan={editingLoan}
         books={SEED_BOOKS}
         members={SEED_MEMBERS}
+        loans={loans}
+        plans={SEED_MEMBERSHIP_PLANS}
         onOpenChange={setFormOpen}
         onSubmit={handleSubmit}
       />
