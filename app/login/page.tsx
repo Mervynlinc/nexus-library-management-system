@@ -138,6 +138,9 @@ export default function LoginPage() {
             noValidate
             onSubmit={handleSubmit}
           >
+            {/* maxLength bounds the payload (defense-in-depth for the future
+                API); validation also strips whitespace before submitting.
+                Credentials are never logged anywhere on the client. */}
             <TextInput
               label="Username"
               name="username"

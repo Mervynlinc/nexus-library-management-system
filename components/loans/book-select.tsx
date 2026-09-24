@@ -29,6 +29,9 @@ export function BookSelect({
 
   const selected = books.find((book) => book.id === value) ?? null
 
+  // Filter books client-side. Matches by title OR ISBN. normalizeIsbn() strips
+  // hyphens/spaces and uppercases, so "978-0-13-235088-4", "9780132350884" or a
+  // partial "235088" all match the same book.
   const filtered = useMemo(() => {
     const needle = query.trim()
     if (!needle) return books
@@ -41,6 +44,7 @@ export function BookSelect({
     )
   }, [books, query])
 
+  // Close the dropdown when the user clicks anywhere outside the component.
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
       if (
@@ -134,6 +138,7 @@ export function BookSelect({
                     >
                       <span className="flex min-w-0 flex-col">
                         <span className="truncate">{book.title}</span>
+                        {/* Show the ISBN under the title so users can pick by it. */}
                         <span className="truncate text-xs text-text-secondary">
                           {book.isbn}
                         </span>

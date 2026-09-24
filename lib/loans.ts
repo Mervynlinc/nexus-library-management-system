@@ -2,6 +2,15 @@ import type { Book } from "@/lib/books"
 import type { Member } from "@/lib/members"
 import type { MembershipPlan } from "@/lib/membership-plans"
 
+/**
+ * Loan domain types + validation.
+ *
+ * A loan links a book and a member for a date range (issue -> due date) and
+ * can be active, returned or overdue. This file is shared by the circulation
+ * page and the books page's "Lend" dialog, so the exact same edit/create rules
+ * apply in both places (single source of truth for the rules).
+ */
+
 export type LoanStatus = "active" | "returned" | "overdue"
 
 export interface Loan {
@@ -16,6 +25,7 @@ export interface Loan {
   updatedAt: string
 }
 
+/** Raw submitted form shape (book/member are ids referencing other mocks). */
 export interface LoanFormValues {
   bookId: string
   memberId: string
@@ -25,6 +35,12 @@ export interface LoanFormValues {
 
 export type LoanFormErrors = Partial<Record<keyof LoanFormValues, string>>
 
+/**
+ * Everything validateLoan needs to enforce business rules. Passed in from the
+ * page that opens the dialog so validation always looks at live in-memory data
+ * (`loans`/`books`/...) rather than stale copies. `editingId` is the loan being
+ * edited, so its own open records are excluded from the counts.
+ */
 export interface LoanValidationContext {
   books: Book[]
   members: Member[]
@@ -33,6 +49,10 @@ export interface LoanValidationContext {
   editingId?: string
 }
 
+/**
+ * Trims every input before validation. Always validate the *cleaned* values so
+ * padding spaces can't pass an empty-field check or mess up date parsing.
+ */
 export function cleanLoanFormValues(values: LoanFormValues): LoanFormValues {
   return {
     bookId: values.bookId.trim(),
@@ -42,8 +62,10 @@ export function cleanLoanFormValues(values: LoanFormValues): LoanFormValues {
   }
 }
 
+/** Builds seed-form values for the dialog: blank new loan or an existing one. */
 export function loanToFormValues(loan: Loan | null): LoanFormValues {
   if (!loan) {
+    // Sensible default: issue date = today, due date left for the user.
     const today = new Date().toISOString().slice(0, 10)
     return {
       bookId: "",
@@ -61,6 +83,10 @@ export function loanToFormValues(loan: Loan | null): LoanFormValues {
   }
 }
 
+/**
+ * Maps already-validated form values onto the Loan fields that come from the
+ * form. A brand-new loan is always active with no return date yet.
+ */
 export function loanFromFormValues(
   values: LoanFormValues
 ): Pick<Loan, "bookId" | "memberId" | "issueDate" | "dueDate" | "returnDate" | "status"> {
@@ -74,6 +100,18 @@ export function loanFromFormValues(
   }
 }
 
+/**
+ * Validates a loan form and returns an errors object (empty == valid).
+ *
+ * Part 1 — field-level checks: required + real dates + due date after issue.
+ * Part 2 — business rules (only when a context is supplied):
+ *   - the book must exist and have at least one free copy
+ *   - the member must exist, have a valid plan, and not exceed that plan's
+ *     borrowing limit (open loans + this new one <= limit)
+ *
+ * "Open" means status !== "returned"; editingId is ignored so editing (not
+ * creating) a loan doesn't double-count its own outstanding entry.
+ */
 export function validateLoan(
   values: LoanFormValues,
   ctx?: LoanValidationContext
@@ -119,6 +157,9 @@ export function validateLoan(
   if (ctx) {
     const editingId = ctx.editingId
 
+    // --- Business rule: the book must exist and have a free copy. ---
+    // "outstanding" = how many open loans already reference this book; a
+    // physical copy can only be loaned once, so we cap it at availableCopies.
     if (values.bookId) {
       const book = ctx.books.find((b) => b.id === values.bookId)
       if (!book) {
@@ -136,6 +177,8 @@ export function validateLoan(
       }
     }
 
+    // --- Business rule: member exists, has a valid plan, and hasn't hit ---
+    // --- the borrowing limit. Adding this loan must keep them at or under it. ---
     if (values.memberId) {
       const member = ctx.members.find((m) => m.id === values.memberId)
       if (!member) {
@@ -162,6 +205,7 @@ export function validateLoan(
   return errors
 }
 
+/** Convenience check so callers can test validity in one line. */
 export function isLoanFormValid(errors: LoanFormErrors) {
   return Object.keys(errors).length === 0
 }

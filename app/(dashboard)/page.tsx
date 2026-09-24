@@ -16,6 +16,16 @@ import {
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { ActivityChart } from "@/components/dashboard/activity-chart"
 
+/**
+ * Dashboard — the landing page.
+ *
+ * Next.js prerenders this page as static HTML (no "use client" needed), but the
+ * two cards below intentionally render *client* components (ActivityChart /
+ * ActivityFeed). Those components fetch the activity log from the browser's
+ * localStorage only after mount, so the static render stays deterministic and
+ * hydration safe — the logs can't exist at build time.
+ */
+
 const STATS = [
   {
     label: "Total Books",

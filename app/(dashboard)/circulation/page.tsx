@@ -198,13 +198,18 @@ export default function CirculationPage() {
     setFormOpen(true)
   }
 
+  // Create OR update depending on whether we're editing. The dialog has
+  // already validated business rules (free copy, borrowing limit) with the
+  // live `loans` state we pass in below.
   async function handleSubmit(values: LoanFormValues) {
+    // Simulated network latency so the "Saving\u2026" spinner reads naturally.
     await new Promise((resolve) => setTimeout(resolve, 700))
     const now = new Date().toISOString()
     const fields = loanFromFormValues(values)
 
     setLoans((previous) => {
       if (editingLoan === null) {
+        // New loan: prepend with a fresh id + timestamps.
         return [
           {
             id: crypto.randomUUID(),
@@ -215,6 +220,7 @@ export default function CirculationPage() {
           ...previous,
         ]
       }
+      // Edit: keep id/createdAt, replace the form fields, bump updatedAt.
       return previous.map((loan) =>
         loan.id === editingLoan.id
           ? { ...loan, ...fields, updatedAt: now }
@@ -232,6 +238,7 @@ export default function CirculationPage() {
     })
   }
 
+  // Marks a loan as returned and records the actual return date.
   function handleReturn(returnDate: string) {
     if (returningLoan === null) return
     const now = new Date().toISOString()
@@ -401,6 +408,8 @@ export default function CirculationPage() {
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex items-center justify-end gap-0.5">
+                        {/* A returned loan is a closed record: it can't be
+                            returned again or edited, only deleted. */}
                         {loan.status !== "returned" ? (
                           <Button
                             variant="ghost"
@@ -449,6 +458,8 @@ export default function CirculationPage() {
         onPageChange={setPage}
       />
 
+      {/* Dialog gets the LIVE loans state (not the seed), so the validation
+          inside counts loans you just created in this session. */}
       <LoanFormDialog
         key={formKey}
         open={formOpen}

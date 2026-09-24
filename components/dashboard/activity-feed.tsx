@@ -10,12 +10,24 @@ import {
   type ActivityItem,
 } from "@/lib/activity"
 
+/**
+ * ActivityFeed — the list shown on the dashboard.
+ *
+ * Why start empty? Next.js prerenders this page as static HTML at build time.
+ * If we rendered localStorage data on the first client render instead of
+ * waiting for the browser, the pre-rendered markup and the client DOM would
+ * differ (different timestamps) -> React hydration mismatch. So we start with
+ * [] and populate inside useEffect, which only runs in the browser.
+ */
 export function ActivityFeed() {
   const [items, setItems] = useState<ActivityItem[]>([])
 
   useEffect(() => {
+    // refresh loads the feed and is re-invoked on every change.
     const refresh = () => setItems(getActivityFeed())
     refresh()
+    // subscribeActivity returns the cleanup function React calls on unmount,
+    // so we never leak event listeners.
     return subscribeActivity(refresh)
   }, [])
 
@@ -31,6 +43,7 @@ export function ActivityFeed() {
     <div className="flex flex-col gap-4">
       {items.map((item) => (
         <div key={item.id} className="flex items-start gap-2.5">
+          {/* The icon follows the variant: errors are red, everything else green. */}
           {item.variant === "error" ? (
             <CircleAlert className="mt-0.5 size-4 shrink-0 text-danger" />
           ) : (
