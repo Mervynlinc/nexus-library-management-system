@@ -10,6 +10,7 @@ export interface MembershipPlan {
   billingTerm: BillingTerm
   borrowingLimit: number
   loanPeriodDays: number
+  fineRatePerDay: number
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -22,6 +23,7 @@ export interface MembershipPlanFormValues {
   billingTerm: BillingTerm
   borrowingLimit: string
   loanPeriodDays: string
+  fineRatePerDay: string
   isActive: boolean
 }
 
@@ -52,6 +54,9 @@ export function cleanMembershipPlanFormValues(
     loanPeriodDays: values.loanPeriodDays
       .replace(/[\u0000-\u001f\u007f]/g, "")
       .trim(),
+    fineRatePerDay: values.fineRatePerDay
+      .replace(/[\u0000-\u001f\u007f]/g, "")
+      .trim(),
     isActive: values.isActive,
   }
 }
@@ -67,6 +72,7 @@ export function membershipPlanToFormValues(
       billingTerm: "monthly",
       borrowingLimit: "3",
       loanPeriodDays: "14",
+      fineRatePerDay: "500",
       isActive: true,
     }
   }
@@ -78,6 +84,7 @@ export function membershipPlanToFormValues(
     billingTerm: plan.billingTerm,
     borrowingLimit: String(plan.borrowingLimit),
     loanPeriodDays: String(plan.loanPeriodDays),
+    fineRatePerDay: String(plan.fineRatePerDay),
     isActive: plan.isActive,
   }
 }
@@ -90,9 +97,10 @@ export function membershipPlanFromFormValues(
   | "description"
   | "price"
   | "billingTerm"
-  | "borrowingLimit"
-  | "loanPeriodDays"
-  | "isActive"
+| "borrowingLimit"
+      | "loanPeriodDays"
+      | "fineRatePerDay"
+      | "isActive"
 > {
   return {
     name: values.name,
@@ -101,6 +109,7 @@ export function membershipPlanFromFormValues(
     billingTerm: values.billingTerm,
     borrowingLimit: Number(values.borrowingLimit),
     loanPeriodDays: Number(values.loanPeriodDays),
+    fineRatePerDay: Number(values.fineRatePerDay),
     isActive: values.isActive,
   }
 }
@@ -170,6 +179,17 @@ export function validateMembershipPlan(
       errors.loanPeriodDays = "Enter at least 1 day."
     } else if (days > 365) {
       errors.loanPeriodDays = "365 max."
+    }
+  }
+
+  if (!values.fineRatePerDay) {
+    errors.fineRatePerDay = "Fine rate is required."
+  } else {
+    const rate = Number(values.fineRatePerDay)
+    if (!Number.isInteger(rate) || rate < 1) {
+      errors.fineRatePerDay = "Enter a whole number greater than zero."
+    } else if (rate > 100_000) {
+      errors.fineRatePerDay = "100,000 max."
     }
   }
 

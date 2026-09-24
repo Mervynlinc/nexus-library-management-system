@@ -188,7 +188,7 @@ export function MembershipPlanFormDialog({
               />
             </Field>
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Price (UGX)" htmlFor={`${uid}-price`} error={errors.price}>
                 <Input
                   id={`${uid}-price`}
@@ -207,6 +207,32 @@ export function MembershipPlanFormDialog({
                 />
               </Field>
 
+              <Field
+                label="Fine rate per day (UGX)"
+                htmlFor={`${uid}-fineRatePerDay`}
+                error={errors.fineRatePerDay}
+              >
+                <Input
+                  id={`${uid}-fineRatePerDay`}
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  value={values.fineRatePerDay}
+                  onChange={(event) =>
+                    update("fineRatePerDay", event.target.value)
+                  }
+                  disabled={isSaving}
+                  aria-invalid={Boolean(errors.fineRatePerDay)}
+                  placeholder="e.g. 500"
+                  className={cn(
+                    "h-11 rounded-[10px] bg-surface",
+                    errors.fineRatePerDay && "pr-44"
+                  )}
+                />
+              </Field>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field
                 label="Borrowing limit"
                 htmlFor={`${uid}-borrowingLimit`}

@@ -20,6 +20,7 @@ import {
   memberFromFormValues,
   type Member,
   type MemberFormValues,
+  type MemberStatus,
 } from "@/lib/members"
 import { SEED_MEMBERS } from "@/lib/mocks/members"
 import { MOCK_MEMBERSHIP_PLANS } from "@/lib/mocks/membership-plans"
@@ -36,6 +37,31 @@ function memberInitials(member: Member): string {
   const first = member.firstName.trim().charAt(0)
   const last = member.lastName.trim().charAt(0)
   return `${first}${last}`.toUpperCase() || "?"
+}
+
+function StatusBadge({ status }: { status: MemberStatus }) {
+  const config: Record<MemberStatus, { label: string; className: string }> = {
+    active: {
+      label: "Active",
+      className: "bg-success-tint text-success",
+    },
+    suspended: {
+      label: "Suspended",
+      className: "bg-danger-tint text-danger",
+    },
+    expired: {
+      label: "Expired",
+      className: "bg-muted text-text-secondary",
+    },
+  }
+  const { label, className } = config[status]
+  return (
+    <span
+      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${className}`}
+    >
+      {label}
+    </span>
+  )
 }
 
 function Pagination({
@@ -193,6 +219,7 @@ export default function MembersPage() {
             id: crypto.randomUUID(),
             memberNumber: values.memberNumber,
             ...fields,
+            status: "active",
             createdAt: now,
             updatedAt: now,
           },
@@ -326,6 +353,9 @@ export default function MembersPage() {
               <th className="w-[14%] px-4 py-3 text-left text-[12px] font-medium text-text-secondary">
                 Membership
               </th>
+              <th className="w-[12%] px-4 py-3 text-left text-[12px] font-medium text-text-secondary">
+                Status
+              </th>
               <th className="w-32 px-5 py-3 text-right text-[12px] font-medium text-text-secondary">
                 Actions
               </th>
@@ -335,7 +365,7 @@ export default function MembersPage() {
             {members.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-5 py-12 text-center text-sm text-text-secondary"
                 >
                   No members yet. Click &quot;Add member&quot; to create the
@@ -345,7 +375,7 @@ export default function MembersPage() {
             ) : filteredMembers.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-5 py-12 text-center text-sm text-text-secondary"
                 >
                   No members match your search or filters.
@@ -387,6 +417,9 @@ export default function MembersPage() {
                   </td>
                   <td className="px-4 py-3 text-text-secondary">
                     {membershipName(member.membershipId)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <StatusBadge status={member.status} />
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center justify-end gap-0.5">

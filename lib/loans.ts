@@ -13,6 +13,30 @@ import type { MembershipPlan } from "@/lib/membership-plans"
 
 export type LoanStatus = "active" | "returned" | "overdue"
 
+/**
+ * Today's date as a local YYYY-MM-DD string. Uses the user's calendar (local
+ * time), not UTC, so the issue date matches what today actually is for them.
+ */
+export function todayISODate(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, "0")
+  const day = String(now.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * Adds whole calendar days to a YYYY-MM-DD date and returns the result in the
+ * same format. Used to compute the latest allowed due date from a plan's
+ * `loanPeriodDays`. Returns the input unchanged if it isn't a real date.
+ */
+export function addDaysISO(isoDate: string, days: number): string {
+  const date = new Date(`${isoDate}T00:00:00.000Z`)
+  if (Number.isNaN(date.getTime())) return isoDate
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
 export interface Loan {
   id: string
   bookId: string
@@ -65,12 +89,14 @@ export function cleanLoanFormValues(values: LoanFormValues): LoanFormValues {
 /** Builds seed-form values for the dialog: blank new loan or an existing one. */
 export function loanToFormValues(loan: Loan | null): LoanFormValues {
   if (!loan) {
+
     // Sensible default: issue date = today, due date left for the user.
     const today = new Date().toISOString().slice(0, 10)
+
     return {
       bookId: "",
       memberId: "",
-      issueDate: today,
+      issueDate: todayISODate(),
       dueDate: "",
     }
   }
@@ -197,6 +223,34 @@ export function validateLoan(
           if (outstandingForMember + 1 > plan.borrowingLimit) {
             errors.memberId = `${member.firstName} ${member.lastName} has reached the borrowing limit of ${plan.borrowingLimit} book${plan.borrowingLimit === 1 ? "" : "s"}.`
           }
+          // --- Business rule: the loan duration is capped by the member's ---
+          // --- plan. dueDate - issueDate must stay within loanPeriodDays. ---
+          // Only adds an error if the due date is otherwise valid, so stricter
+          // messages (e.g. "must be after issue") take precedence.
+          if (
+            values.issueDate &&
+            values.dueDate &&
+            !errors.dueDate
+          ) {
+            const issue = new Date(`${values.issueDate}T00:00:00.000Z`)
+            const due = new Date(`${values.dueDate}T00:00:00.000Z`)
+            if (
+              !Number.isNaN(issue.getTime()) &&
+              !Number.isNaN(due.getTime())
+            ) {
+              const durationDays = Math.round(
+                (due.getTime() - issue.getTime()) / 86_400_000
+              )
+              if (durationDays > plan.loanPeriodDays) {
+                const latestDue = addDaysISO(
+                  values.issueDate,
+                  plan.loanPeriodDays
+                )
+                errors.dueDate = `${plan.name} plan allows loans of up to ${plan.loanPeriodDays} day${plan.loanPeriodDays === 1 ? "" : "s"}; the due date can't be later than ${latestDue}.`
+              }
+            }
+          }
+
         }
       }
     }
