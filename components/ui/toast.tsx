@@ -14,6 +14,17 @@ import { CircleAlert, CircleCheck, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { addActivity } from "@/lib/activity"
 
+/**
+ * Toast system.
+ *
+ * ToastProvider wraps the whole app (see app/layout.tsx). Every success/error
+ * banner in the app is raised through `show` from useToast(). That single
+ * entry point makes the toast the perfect chokepoint for activity logging:
+ * every toast either succeeds or fails an action, so "toast fired" ==
+ * "something happened worth recording". We piggyback on it to keep the
+ * dashboard activity feed + chart in sync (addActivity below).
+ */
+
 export type ToastVariant = "success" | "error"
 
 export interface ToastAction {
@@ -29,7 +40,9 @@ interface ToastItem extends ToastAction {
 
 const ToastContext = createContext<(action: ToastAction) => void>(() => {})
 
+/** How long a toast stays visible before it starts to fade out. */
 const TOAST_DURATION = 4200
+/** How long the exit animation runs before the toast is removed from state. */
 const LEAVE_DURATION = 220
 
 export function useToast() {
@@ -38,8 +51,10 @@ export function useToast() {
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([])
+  // Monotonic id counter (useRef) — stable keys for React's list rendering.
   const nextId = useRef(1)
 
+  // Marks a toast as "leaving", then removes it once the exit animation ends.
   const dismiss = useCallback((id: number) => {
     setToasts((previous) =>
       previous.map((toast) =>
@@ -53,10 +68,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const show = useCallback(
     (action: ToastAction) => {
+      // 1) Log to the persistent activity feed (dashboard feed + chart).
       addActivity(action)
+      // 2) Show the visual toast, newest first.
       const id = nextId.current
       nextId.current += 1
       setToasts((previous) => [{ ...action, id, leaving: false }, ...previous])
+      // 3) Auto-dismiss after the duration.
       window.setTimeout(() => dismiss(id), TOAST_DURATION)
     },
     [dismiss]

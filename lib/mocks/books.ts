@@ -11,6 +11,8 @@ export const SEED_BOOKS: Book[] = [
     language: "English",
     publisherId: "pub-addison",
     edition: "20th anniversary",
+    description:
+      "A classic guide to software craftsmanship covering pragmatic practices for writing maintainable, testable code in demanding environments.",
     totalCopies: 3,
     availableCopies: 1,
     createdAt: "2025-01-15T09:00:00.000Z",
@@ -26,6 +28,8 @@ export const SEED_BOOKS: Book[] = [
     language: "English",
     publisherId: "pub-prentice",
     edition: "1",
+    description:
+      "Robert C. Martin lays out an architecture-first approach to building software systems that stay soft and evolve with business needs.",
     totalCopies: 2,
     availableCopies: 0,
     createdAt: "2025-01-15T09:00:00.000Z",
@@ -41,6 +45,8 @@ export const SEED_BOOKS: Book[] = [
     language: "English",
     publisherId: "pub-oreilly",
     edition: "1",
+    description:
+      "A deep look at the architecture of data-intensive systems, from storage engines to distributed consistency, replication, and batch processing.",
     totalCopies: 2,
     availableCopies: 2,
     createdAt: "2025-01-15T09:00:00.000Z",
@@ -56,6 +62,8 @@ export const SEED_BOOKS: Book[] = [
     language: "English",
     publisherId: "pub-prentice",
     edition: "1",
+    description:
+      "Uncle Bob on professionalism in software development: practicing your craft, saying no to impossible demands, and writing code that respects its users.",
     totalCopies: 1,
     availableCopies: 1,
     createdAt: "2025-01-15T09:00:00.000Z",
@@ -71,6 +79,8 @@ export const SEED_BOOKS: Book[] = [
     language: "English",
     publisherId: "pub-addison",
     edition: "2",
+    description:
+      "Martin Fowler's catalogue of refactorings for improving the design of existing code, with recipes for making changes safely step by step.",
     totalCopies: 4,
     availableCopies: 3,
     createdAt: "2025-01-15T09:00:00.000Z",
@@ -86,6 +96,8 @@ export const SEED_BOOKS: Book[] = [
     language: "English",
     publisherId: "pub-mit",
     edition: "2",
+    description:
+      "The classic MIT text on computer science and programming, teaching computational abstraction and problem solving through Scheme.",
     totalCopies: 2,
     availableCopies: 0,
     createdAt: "2025-01-15T09:00:00.000Z",

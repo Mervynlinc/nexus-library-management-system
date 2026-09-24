@@ -15,6 +15,7 @@ export interface Book {
   language: string
   publisherId: string
   edition: string
+  description: string
   totalCopies: number
   availableCopies: number
   createdAt: string
@@ -30,6 +31,7 @@ export interface BookFormValues {
   language: string
   publisherId: string
   edition: string
+  description: string
   totalCopies: string
 }
 
@@ -55,6 +57,7 @@ export function cleanBookFormValues(
     language: cleanText(values.language),
     publisherId: values.publisherId.trim(),
     edition: cleanText(values.edition),
+    description: cleanText(values.description),
     totalCopies: values.totalCopies.trim(),
   }
 }
@@ -70,6 +73,7 @@ export function bookToFormValues(book: Book | null): BookFormValues {
       language: "",
       publisherId: "",
       edition: "",
+      description: "",
       totalCopies: "",
     }
   }
@@ -84,6 +88,7 @@ export function bookToFormValues(book: Book | null): BookFormValues {
     language: book.language,
     publisherId: book.publisherId,
     edition: book.edition,
+    description: book.description,
     totalCopies: String(book.totalCopies),
   }
 }
@@ -97,9 +102,10 @@ export function bookFromFormValues(
   | "isbn"
   | "publishedYear"
   | "genre"
-  | "language"
-  | "publisherId"
-  | "edition"
+| "language"
+      | "publisherId"
+      | "edition"
+      | "description"
 > {
   return {
     title: values.title,
@@ -111,6 +117,7 @@ export function bookFromFormValues(
     language: values.language,
     publisherId: values.publisherId,
     edition: values.edition,
+    description: values.description,
   }
 }
 
@@ -182,6 +189,10 @@ export function validateBook(values: BookFormValues): BookFormErrors {
 
   if (values.edition.length > 40) {
     errors.edition = "40 characters max."
+  }
+
+  if (values.description.length > 2000) {
+    errors.description = "2000 characters max."
   }
 
   if (!values.totalCopies) {

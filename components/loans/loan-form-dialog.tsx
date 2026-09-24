@@ -19,6 +19,7 @@ import { Field } from "@/components/form/field"
 import { BookSelect } from "@/components/loans/book-select"
 import { MemberSelect } from "@/components/loans/member-select"
 import {
+  addDaysISO,
   loanToFormValues,
   cleanLoanFormValues,
   isLoanFormValid,
@@ -31,9 +32,16 @@ import type { Book } from "@/lib/books"
 import type { Member } from "@/lib/members"
 import type { MembershipPlan } from "@/lib/membership-plans"
 
+/**
+ * LoanFormDialog — create/edit dialog for loans.
+ *
+ * Used by the Circulation page (new + edit) and the Books page ("Lend").
+ * The page passes live data via props (`books`, `members`, `loans`, `plans`);
+ * `defaultBookId` pre-selects the book when lending starts from a book card.
+ */
 interface LoanFormDialogProps {
   open: boolean
-  loan: Loan | null
+  loan: Loan | null // null -> creating a new loan; otherwise editing
   books: Book[]
   members: Member[]
   loans: Loan[]
@@ -59,6 +67,7 @@ export function LoanFormDialog({
   const toast = useToast()
 
   const [values, setValues] = useState<LoanFormValues>(() => {
+    // Seed form state from the loan being edited, or from defaults (today).
     const base = loanToFormValues(loan)
     if (!loan && defaultBookId) {
       return { ...base, bookId: defaultBookId }
@@ -68,6 +77,20 @@ export function LoanFormDialog({
   const [errors, setErrors] = useState<LoanFormErrors>({})
   const [isSaving, setIsSaving] = useState(false)
 
+  // The due date is bounded by the selected member's plan loan period. Derive
+  // the latest allowed due date live so the picker's `max` and the helper
+  // hint always reflect the currently selected plan.
+  const selectedMember = members.find((m) => m.id === values.memberId) ?? null
+  const selectedPlan =
+    selectedMember === null
+      ? null
+      : plans.find((p) => p.id === selectedMember.membershipId) ?? null
+  const maxDueDate =
+    selectedPlan !== null && values.issueDate
+      ? addDaysISO(values.issueDate, selectedPlan.loanPeriodDays)
+      : undefined
+
+  // Small controlled-input helper: update one field of `values`.
   function update<const K extends keyof LoanFormValues>(
     field: K,
     value: LoanFormValues[K]
@@ -77,8 +100,9 @@ export function LoanFormDialog({
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    if (isSaving) return
+    if (isSaving) return // guard against double submits while saving
 
+    // Guard: a returned loan is a closed record and must not be edited.
     if (loan?.status === "returned") {
       toast({
         variant: "error",
@@ -88,6 +112,8 @@ export function LoanFormDialog({
       return
     }
 
+    // Validate on a cleaned copy, using the live context passed by the page.
+    // All business rules (free copy, borrowing limit) live in validateLoan.
     const cleaned = cleanLoanFormValues(values)
     const nextErrors = validateLoan(cleaned, {
       books,
@@ -108,6 +134,7 @@ export function LoanFormDialog({
 
     setIsSaving(true)
     try {
+      // Delegate persistence to the page: it owns loans/books state.
       await onSubmit(cleaned)
     } catch {
       toast({
@@ -184,14 +211,16 @@ export function LoanFormDialog({
                   id={`${uid}-issueDate`}
                   type="date"
                   value={values.issueDate}
-                  onChange={(event) => update("issueDate", event.target.value)}
-                  disabled={isSaving}
+                  disabled
+                  readOnly
                   aria-invalid={Boolean(errors.issueDate)}
-                  className={cn(
-                    "h-11 rounded-[10px] bg-surface",
-                    errors.issueDate && "pr-44"
-                  )}
+                  className="h-11 rounded-[10px] bg-surface opacity-60"
                 />
+                <p className="pt-1 text-xs text-text-secondary">
+                  {editing
+                    ? "Original issue date — can't be changed."
+                    : "Set automatically to today's date."}
+                </p>
               </Field>
 
               <Field
@@ -203,6 +232,8 @@ export function LoanFormDialog({
                   id={`${uid}-dueDate`}
                   type="date"
                   value={values.dueDate}
+                  min={values.issueDate}
+                  max={maxDueDate}
                   onChange={(event) => update("dueDate", event.target.value)}
                   disabled={isSaving}
                   aria-invalid={Boolean(errors.dueDate)}
@@ -211,6 +242,14 @@ export function LoanFormDialog({
                     errors.dueDate && "pr-44"
                   )}
                 />
+                {selectedPlan !== null ? (
+                  <p className="pt-1 text-xs text-text-secondary">
+                    {selectedPlan.name} plan: loan up to{" "}
+                    {selectedPlan.loanPeriodDays}{" "}
+                    {selectedPlan.loanPeriodDays === 1 ? "day" : "days"};
+                    {maxDueDate ? ` due by ${maxDueDate}` : " select a member's issue date"}
+                  </p>
+                ) : null}
               </Field>
             </div>
           </div>
