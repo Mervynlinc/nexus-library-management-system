@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { Check, ChevronDown, Search } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import type { Book } from "@/lib/books"
+import { normalizeIsbn, type Book } from "@/lib/books"
 
 interface BookSelectProps {
   books: Book[]
@@ -29,14 +29,22 @@ export function BookSelect({
 
   const selected = books.find((book) => book.id === value) ?? null
 
+  // Filter books client-side. Matches by title OR ISBN. normalizeIsbn() strips
+  // hyphens/spaces and uppercases, so "978-0-13-235088-4", "9780132350884" or a
+  // partial "235088" all match the same book.
   const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase()
+    const needle = query.trim()
     if (!needle) return books
-    return books.filter((book) =>
-      book.title.toLowerCase().includes(needle)
+    const needleLower = needle.toLowerCase()
+    const isbnNeedle = normalizeIsbn(needle)
+    return books.filter(
+      (book) =>
+        book.title.toLowerCase().includes(needleLower) ||
+        (isbnNeedle.length > 0 && normalizeIsbn(book.isbn).includes(isbnNeedle))
     )
   }, [books, query])
 
+  // Close the dropdown when the user clicks anywhere outside the component.
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
       if (
@@ -128,7 +136,13 @@ export function BookSelect({
                           : "hover:bg-primary-tint/60"
                       )}
                     >
-                      <span className="truncate">{book.title}</span>
+                      <span className="flex min-w-0 flex-col">
+                        <span className="truncate">{book.title}</span>
+                        {/* Show the ISBN under the title so users can pick by it. */}
+                        <span className="truncate text-xs text-text-secondary">
+                          {book.isbn}
+                        </span>
+                      </span>
                       {isSelected ? <Check className="size-4 shrink-0" /> : null}
                     </button>
                   </li>

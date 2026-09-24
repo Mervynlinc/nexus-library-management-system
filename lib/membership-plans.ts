@@ -1,3 +1,5 @@
+import { cleanText } from "@/lib/utils"
+
 export type BillingTerm = "monthly" | "annual"
 
 export interface MembershipPlan {
@@ -31,13 +33,6 @@ export const BILLING_TERM_OPTIONS: { value: BillingTerm; label: string }[] = [
   { value: "monthly", label: "Monthly" },
   { value: "annual", label: "Annual" },
 ]
-
-export function cleanText(value: string): string {
-  return value
-    .replace(/[\u0000-\u001f\u007f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-}
 
 export function billingTermText(term: BillingTerm): string {
   return term === "monthly" ? "per month" : "per year"

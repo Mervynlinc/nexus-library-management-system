@@ -23,8 +23,15 @@ import {
   type Book,
   type BookFormValues,
 } from "@/lib/books"
+import {
+  loanFromFormValues,
+  type Loan,
+  type LoanFormValues,
+} from "@/lib/loans"
 import { SEED_BOOKS } from "@/lib/mocks/books"
 import { SEED_MEMBERS } from "@/lib/mocks/members"
+import { SEED_LOANS } from "@/lib/mocks/loans-seed"
+import { SEED_MEMBERSHIP_PLANS } from "@/lib/mocks/membership-plans-seed"
 
 const PAGE_SIZE = 8
 
@@ -108,6 +115,7 @@ export default function BooksPage() {
   const [lendingBook, setLendingBook] = useState<Book | null>(null)
   const [loanFormOpen, setLoanFormOpen] = useState(false)
   const [loanFormKey, setLoanFormKey] = useState(0)
+  const [loans, setLoans] = useState<Loan[]>(SEED_LOANS)
   const toast = useToast()
 
   const query = search.trim().toLowerCase()
@@ -231,6 +239,7 @@ export default function BooksPage() {
     })
   }
 
+  // Pre-open the loan form for this book, or do nothing if no copies are left.
   function openLend(book: Book) {
     if (book.availableCopies === 0) return
     setLendingBook(book)
@@ -238,11 +247,28 @@ export default function BooksPage() {
     setLoanFormOpen(true)
   }
 
-  function handleLendSubmit() {
+  // The real lending handler: creates a loan record (mirrors Circulation)
+  // AND decrements availableCopies.  The dialog validates business rules
+  // (free copy, borrowing limit) via validateLoan before this runs.
+  async function handleLendSubmit(values: LoanFormValues) {
     if (lendingBook === null || lendingBook.availableCopies === 0) return
     const lent = lendingBook
     const now = new Date().toISOString()
+    // Simulated network latency so the "Saving\u2026" spinner reads naturally.
+    await new Promise((resolve) => setTimeout(resolve, 700))
+    const fields = loanFromFormValues(values)
 
+    // 1) Create the real loan record so Circulation can see it.
+    setLoans((previous) => [
+      {
+        id: crypto.randomUUID(),
+        ...fields,
+        createdAt: now,
+        updatedAt: now,
+      },
+      ...previous,
+    ])
+    // 2) Decrement the book's available copy count.
     setBooks((previous) =>
       previous.map((book) =>
         book.id === lent.id
@@ -468,12 +494,16 @@ export default function BooksPage() {
         onOpenChange={setFormOpen}
         onSubmit={handleSubmit}
       />
+      {/* Pre-selects the book (defaultBookId) via lendingBook. Passes the live
+          `loans` state so validation counts loans created in this session. */}
       <LoanFormDialog
         key={loanFormKey}
         open={loanFormOpen}
         loan={null}
         books={books}
         members={SEED_MEMBERS}
+        loans={loans}
+        plans={SEED_MEMBERSHIP_PLANS}
         defaultBookId={lendingBook?.id}
         onOpenChange={(open) => {
           setLoanFormOpen(open)

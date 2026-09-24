@@ -29,14 +29,27 @@ export function MemberSelect({
 
   const selected = members.find((member) => member.id === value) ?? null
 
+  // Filter members client-side. Matches by name OR member number. All
+  // non-alphanumeric characters are stripped from both sides, so "MBR-0001",
+  // "mbr0001" and even "0001" all find member MBR-0001.
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
     if (!needle) return members
-    return members.filter((member) =>
-      `${member.firstName} ${member.lastName}`.toLowerCase().includes(needle)
+    const numNeedle = needle.replace(/[^a-z0-9]/g, "")
+    return members.filter(
+      (member) =>
+        `${member.firstName} ${member.lastName}`
+          .toLowerCase()
+          .includes(needle) ||
+        (numNeedle.length > 0 &&
+          member.memberNumber
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, "")
+            .includes(numNeedle))
     )
   }, [members, query])
 
+  // Close the dropdown when the user clicks anywhere outside the component.
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
       if (
@@ -131,7 +144,13 @@ export function MemberSelect({
                           : "hover:bg-primary-tint/60"
                       )}
                     >
-                      <span className="truncate">{fullName}</span>
+                      <span className="flex min-w-0 flex-col">
+                        <span className="truncate">{fullName}</span>
+                        {/* Show the member number so users can pick by it. */}
+                        <span className="truncate text-xs text-text-secondary">
+                          {member.memberNumber}
+                        </span>
+                      </span>
                       {isSelected ? <Check className="size-4 shrink-0" /> : null}
                     </button>
                   </li>

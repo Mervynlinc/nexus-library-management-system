@@ -21,8 +21,7 @@ const ERROR_MESSAGES = {
  * Replaced by a real POST /api/login once the Express server is built.
  * Currently always rejects so the invalid-credentials error state renders.
  */
-function loginRequest(payload: LoginFormState): Promise<void> {
-  console.log("login payload:", payload);
+function loginRequest(): Promise<void> {
   return Promise.reject(new Error(ERROR_MESSAGES.invalid));
 }
 
@@ -64,7 +63,7 @@ export default function LoginPage() {
     }
 
     try {
-      await loginRequest(form);
+      await loginRequest();
     } catch (err) {
       setErrors({
         password:
@@ -139,11 +138,15 @@ export default function LoginPage() {
             noValidate
             onSubmit={handleSubmit}
           >
+            {/* maxLength bounds the payload (defense-in-depth for the future
+                API); validation also strips whitespace before submitting.
+                Credentials are never logged anywhere on the client. */}
             <TextInput
               label="Username"
               name="username"
               autoComplete="username"
               placeholder="your-username"
+              maxLength={50}
               value={form.username}
               onChange={(e) => update("username", e.target.value)}
               error={errors.username}
@@ -155,6 +158,7 @@ export default function LoginPage() {
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
               placeholder="••••••••"
+              maxLength={128}
               value={form.password}
               onChange={(e) => update("password", e.target.value)}
               error={errors.password}

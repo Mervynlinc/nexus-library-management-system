@@ -29,12 +29,22 @@ import {
 } from "@/lib/loans"
 import type { Book } from "@/lib/books"
 import type { Member } from "@/lib/members"
+import type { MembershipPlan } from "@/lib/membership-plans"
 
+/**
+ * LoanFormDialog — create/edit dialog for loans.
+ *
+ * Used by the Circulation page (new + edit) and the Books page ("Lend").
+ * The page passes live data via props (`books`, `members`, `loans`, `plans`);
+ * `defaultBookId` pre-selects the book when lending starts from a book card.
+ */
 interface LoanFormDialogProps {
   open: boolean
-  loan: Loan | null
+  loan: Loan | null // null -> creating a new loan; otherwise editing
   books: Book[]
   members: Member[]
+  loans: Loan[]
+  plans: MembershipPlan[]
   defaultBookId?: string
   onOpenChange: (open: boolean) => void
   onSubmit: (values: LoanFormValues) => Promise<void> | void
@@ -45,6 +55,8 @@ export function LoanFormDialog({
   loan,
   books,
   members,
+  loans,
+  plans,
   defaultBookId,
   onOpenChange,
   onSubmit,
@@ -54,6 +66,7 @@ export function LoanFormDialog({
   const toast = useToast()
 
   const [values, setValues] = useState<LoanFormValues>(() => {
+    // Seed form state from the loan being edited, or from defaults (today).
     const base = loanToFormValues(loan)
     if (!loan && defaultBookId) {
       return { ...base, bookId: defaultBookId }
@@ -63,6 +76,7 @@ export function LoanFormDialog({
   const [errors, setErrors] = useState<LoanFormErrors>({})
   const [isSaving, setIsSaving] = useState(false)
 
+  // Small controlled-input helper: update one field of `values`.
   function update<const K extends keyof LoanFormValues>(
     field: K,
     value: LoanFormValues[K]
@@ -72,10 +86,28 @@ export function LoanFormDialog({
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    if (isSaving) return
+    if (isSaving) return // guard against double submits while saving
 
+    // Guard: a returned loan is a closed record and must not be edited.
+    if (loan?.status === "returned") {
+      toast({
+        variant: "error",
+        title: "Loan already returned",
+        description: "Returned loans can't be edited.",
+      })
+      return
+    }
+
+    // Validate on a cleaned copy, using the live context passed by the page.
+    // All business rules (free copy, borrowing limit) live in validateLoan.
     const cleaned = cleanLoanFormValues(values)
-    const nextErrors = validateLoan(cleaned)
+    const nextErrors = validateLoan(cleaned, {
+      books,
+      members,
+      loans,
+      plans,
+      editingId: loan?.id,
+    })
     setErrors(nextErrors)
     if (!isLoanFormValid(nextErrors)) {
       toast({
@@ -88,6 +120,7 @@ export function LoanFormDialog({
 
     setIsSaving(true)
     try {
+      // Delegate persistence to the page: it owns loans/books state.
       await onSubmit(cleaned)
     } catch {
       toast({
