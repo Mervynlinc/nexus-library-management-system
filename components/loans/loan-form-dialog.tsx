@@ -76,7 +76,6 @@ export function LoanFormDialog({
   })
   const [errors, setErrors] = useState<LoanFormErrors>({})
   const [isSaving, setIsSaving] = useState(false)
-
   // The due date is bounded by the selected member's plan loan period. Derive
   // the latest allowed due date live so the picker's `max` and the helper
   // hint always reflect the currently selected plan.
@@ -89,6 +88,7 @@ export function LoanFormDialog({
     selectedPlan !== null && values.issueDate
       ? addDaysISO(values.issueDate, selectedPlan.loanPeriodDays)
       : undefined
+
 
   // Small controlled-input helper: update one field of `values`.
   function update<const K extends keyof LoanFormValues>(

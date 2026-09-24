@@ -89,7 +89,10 @@ export function cleanLoanFormValues(values: LoanFormValues): LoanFormValues {
 /** Builds seed-form values for the dialog: blank new loan or an existing one. */
 export function loanToFormValues(loan: Loan | null): LoanFormValues {
   if (!loan) {
-    // Issue date is never user-editable: new loans always start today.
+
+    // Sensible default: issue date = today, due date left for the user.
+    const today = new Date().toISOString().slice(0, 10)
+
     return {
       bookId: "",
       memberId: "",
@@ -131,8 +134,6 @@ export function loanFromFormValues(
  *   - the book must exist and have at least one free copy
  *   - the member must exist, have a valid plan, and not exceed that plan's
  *     borrowing limit (open loans + this new one <= limit)
- *   - the loan duration must not exceed the member's plan loan period
- *     (due date - issue date <= loanPeriodDays)
  *
  * "Open" means status !== "returned"; editingId is ignored so editing (not
  * creating) a loan doesn't double-count its own outstanding entry.
@@ -222,7 +223,6 @@ export function validateLoan(
           if (outstandingForMember + 1 > plan.borrowingLimit) {
             errors.memberId = `${member.firstName} ${member.lastName} has reached the borrowing limit of ${plan.borrowingLimit} book${plan.borrowingLimit === 1 ? "" : "s"}.`
           }
-
           // --- Business rule: the loan duration is capped by the member's ---
           // --- plan. dueDate - issueDate must stay within loanPeriodDays. ---
           // Only adds an error if the due date is otherwise valid, so stricter
@@ -250,6 +250,7 @@ export function validateLoan(
               }
             }
           }
+
         }
       }
     }
