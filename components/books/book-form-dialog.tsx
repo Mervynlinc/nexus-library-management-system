@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -111,6 +112,7 @@ export function BookFormDialog({
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="flex flex-col gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Title" htmlFor={`${uid}-title`} error={errors.title}>
               <Input
                 id={`${uid}-title`}
@@ -139,6 +141,26 @@ export function BookFormDialog({
                 className={cn(
                   "h-11 rounded-[10px] bg-surface",
                   errors.author && "pr-44"
+                )}
+              />
+            </Field>
+          </div>
+
+            <Field
+              label="Description (optional)"
+              htmlFor={`${uid}-description`}
+              error={errors.description}
+            >
+              <Textarea
+                id={`${uid}-description`}
+                value={values.description}
+                onChange={(event) => update("description", event.target.value)}
+                disabled={isSaving}
+                aria-invalid={Boolean(errors.description)}
+                placeholder="A short synopsis of the book…"
+                className={cn(
+                  "rounded-[10px] border-border bg-surface",
+                  errors.description && "pr-44"
                 )}
               />
             </Field>

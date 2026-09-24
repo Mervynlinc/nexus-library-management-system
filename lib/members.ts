@@ -5,6 +5,8 @@ export interface MembershipPlan {
   name: string
 }
 
+export type MemberStatus = "active" | "suspended" | "expired"
+
 export interface Member {
   id: string
   memberNumber: string
@@ -16,6 +18,7 @@ export interface Member {
   dateOfBirth: string | null
   photoUrl: string | null
   membershipId: string
+  status: MemberStatus
   createdAt: string
   updatedAt: string
 }
