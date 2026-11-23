@@ -91,7 +91,6 @@ export function loanToFormValues(loan: Loan | null): LoanFormValues {
   if (!loan) {
 
     // Sensible default: issue date = today, due date left for the user.
-    const today = new Date().toISOString().slice(0, 10)
 
     return {
       bookId: "",
@@ -191,13 +190,7 @@ export function validateLoan(
       if (!book) {
         errors.bookId = "Select a valid book."
       } else {
-        const outstandingForBook = ctx.loans.filter(
-          (loan) =>
-            loan.bookId === book.id &&
-            loan.status !== "returned" &&
-            loan.id !== editingId
-        ).length
-        if (outstandingForBook >= book.availableCopies) {
+        if (!editingId && book.availableCopies < 1) {
           errors.bookId = "No copies of this book are available."
         }
       }

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRecords, saveRecord, recordAction } from "@/hooks/use-records"
 import {
   ChevronDown,
   ChevronLeft,
@@ -18,16 +19,10 @@ import { useToast } from "@/components/ui/toast"
 import { DeleteLoanDialog } from "@/components/loans/delete-loan-dialog"
 import { LoanFormDialog } from "@/components/loans/loan-form-dialog"
 import { ReturnLoanDialog } from "@/components/loans/return-loan-dialog"
-import {
-  loanFromFormValues,
-  type Loan,
+import {  type Loan,
   type LoanFormValues,
   type LoanStatus,
 } from "@/lib/loans"
-import { SEED_BOOKS } from "@/lib/mocks/books"
-import { SEED_MEMBERS } from "@/lib/mocks/members"
-import { SEED_LOANS } from "@/lib/mocks/loans-seed"
-import { SEED_MEMBERSHIP_PLANS } from "@/lib/mocks/membership-plans-seed"
 
 const PAGE_SIZE = 8
 
@@ -134,7 +129,10 @@ function Pagination({
 }
 
 export default function CirculationPage() {
-  const [loans, setLoans] = useState<Loan[]>(SEED_LOANS)
+  const [catalogBooks] = useRecords<import("@/lib/books").Book>("books")
+  const [catalogMembers] = useRecords<import("@/lib/members").Member>("members")
+  const [catalogMembersHIP_PLANS] = useRecords<import("@/lib/membership-plans").MembershipPlan>("membership-plans")
+  const [loans, setLoans] = useRecords<Loan>("loans")
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | LoanStatus>("all")
@@ -149,8 +147,8 @@ export default function CirculationPage() {
 
   function matchesSearch(loan: Loan): boolean {
     if (!query) return true
-    const book = SEED_BOOKS.find((b) => b.id === loan.bookId)
-    const member = SEED_MEMBERS.find((m) => m.id === loan.memberId)
+    const book = catalogBooks.find((b) => b.id === loan.bookId)
+    const member = catalogMembers.find((m) => m.id === loan.memberId)
     const bookTitle = book?.title ?? ""
     const memberName = member
       ? `${member.firstName} ${member.lastName}`
@@ -202,72 +200,27 @@ export default function CirculationPage() {
   // already validated business rules (free copy, borrowing limit) with the
   // live `loans` state we pass in below.
   async function handleSubmit(values: LoanFormValues) {
-    // Simulated network latency so the "Saving\u2026" spinner reads naturally.
-    await new Promise((resolve) => setTimeout(resolve, 700))
-    const now = new Date().toISOString()
-    const fields = loanFromFormValues(values)
-
-    setLoans((previous) => {
-      if (editingLoan === null) {
-        // New loan: prepend with a fresh id + timestamps.
-        return [
-          {
-            id: crypto.randomUUID(),
-            ...fields,
-            createdAt: now,
-            updatedAt: now,
-          },
-          ...previous,
-        ]
-      }
-      // Edit: keep id/createdAt, replace the form fields, bump updatedAt.
-      return previous.map((loan) =>
-        loan.id === editingLoan.id
-          ? { ...loan, ...fields, updatedAt: now }
-          : loan
-      )
-    })
+    const item = await saveRecord<Loan>("loans", values, editingLoan?.id)
+    setLoans(previous => editingLoan ? previous.map(row => row.id === item.id ? item : row) : [item, ...previous])
     setFormOpen(false)
-    toast({
-      variant: "success",
-      title: editingLoan === null ? "Loan created" : "Loan updated",
-      description:
-        editingLoan === null
-          ? "The loan record has been created."
-          : "The loan record has been updated.",
-    })
+    toast({variant:"success",title:"Saved to database"})
   }
 
   // Marks a loan as returned and records the actual return date.
-  function handleReturn(returnDate: string) {
-    if (returningLoan === null) return
-    const now = new Date().toISOString()
-    setLoans((previous) =>
-      previous.map((loan) =>
-        loan.id === returningLoan.id
-          ? { ...loan, returnDate, status: "returned" as const, updatedAt: now }
-          : loan
-      )
-    )
-    setReturningLoan(null)
-    toast({
-      variant: "success",
-      title: "Book returned",
-      description: "The return date has been recorded.",
-    })
+  async function handleReturn() {
+    if (!returningLoan) return
+    try { await recordAction("loans", returningLoan.id, "return"); setReturningLoan(null); toast({variant:"success",title:"Return saved"}) }
+    catch (err) { toast({variant:"error",title:"Return failed",description:err instanceof Error?err.message:"Try again"}) }
   }
 
-  function handleDelete() {
-    if (deletingLoan === null) return
-    setLoans((previous) =>
-      previous.filter((loan) => loan.id !== deletingLoan.id)
-    )
-    setDeletingLoan(null)
-    toast({
-      variant: "success",
-      title: "Loan record deleted",
-      description: "The loan record has been permanently removed.",
-    })
+  async function handleDelete() {
+    if (!deletingLoan) return
+    try {
+      await recordAction("loans", deletingLoan.id)
+      setLoans(previous => previous.filter(row => row.id !== deletingLoan.id))
+      setDeletingLoan(null)
+      toast({variant:"success",title:"Record deleted"})
+    } catch (err) { toast({variant:"error",title:"Delete failed",description:err instanceof Error?err.message:"Try again"}) }
   }
 
   return (
@@ -374,8 +327,8 @@ export default function CirculationPage() {
               </tr>
             ) : (
               visibleLoans.map((loan) => {
-                const book = SEED_BOOKS.find((b) => b.id === loan.bookId)
-                const member = SEED_MEMBERS.find(
+                const book = catalogBooks.find((b) => b.id === loan.bookId)
+                const member = catalogMembers.find(
                   (m) => m.id === loan.memberId
                 )
 
@@ -464,17 +417,17 @@ export default function CirculationPage() {
         key={formKey}
         open={formOpen}
         loan={editingLoan}
-        books={SEED_BOOKS}
-        members={SEED_MEMBERS}
+        books={catalogBooks}
+        members={catalogMembers}
         loans={loans}
-        plans={SEED_MEMBERSHIP_PLANS}
+        plans={catalogMembersHIP_PLANS}
         onOpenChange={setFormOpen}
         onSubmit={handleSubmit}
       />
       <ReturnLoanDialog
         loan={returningLoan}
-        books={SEED_BOOKS}
-        members={SEED_MEMBERS}
+        books={catalogBooks}
+        members={catalogMembers}
         onOpenChange={(open) => {
           if (!open) setReturningLoan(null)
         }}
@@ -482,8 +435,8 @@ export default function CirculationPage() {
       />
       <DeleteLoanDialog
         loan={deletingLoan}
-        books={SEED_BOOKS}
-        members={SEED_MEMBERS}
+        books={catalogBooks}
+        members={catalogMembers}
         onOpenChange={(open) => {
           if (!open) setDeletingLoan(null)
         }}

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRecords, saveRecord, recordAction } from "@/hooks/use-records"
 import {
   ChevronDown,
   ChevronLeft,
@@ -17,22 +18,14 @@ import { useToast } from "@/components/ui/toast"
 import { DeleteMembershipPlanDialog } from "@/components/membership-plans/delete-membership-plan-dialog"
 import { MembershipPlanFormDialog } from "@/components/membership-plans/membership-plan-form-dialog"
 import {
-  billingTermText,
-  membershipPlanFromFormValues,
-  type MembershipPlan,
+  billingTermText,  type MembershipPlan,
   type MembershipPlanFormValues,
 } from "@/lib/membership-plans"
-import { SEED_MEMBERSHIP_PLANS } from "@/lib/mocks/membership-plans-seed"
-import { SEED_MEMBERS } from "@/lib/mocks/members"
 import { formatUGX } from "@/lib/utils"
 
 const PAGE_SIZE = 8
 
-function memberCount(membershipId: string): number {
-  return SEED_MEMBERS.filter(
-    (member) => member.membershipId === membershipId
-  ).length
-}
+
 
 function StatusBadge({ isActive }: { isActive: boolean }) {
   return isActive ? (
@@ -114,7 +107,13 @@ function Pagination({
 }
 
 export default function MembershipPlansPage() {
-  const [plans, setPlans] = useState<MembershipPlan[]>(SEED_MEMBERSHIP_PLANS)
+function memberCount(membershipId: string): number {
+  return catalogMembers.filter(
+    (member) => member.membershipId === membershipId
+  ).length
+}
+  const [catalogMembers] = useRecords<import("@/lib/members").Member>("members")
+  const [plans, setPlans] = useRecords<MembershipPlan>("membership-plans")
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<
@@ -182,51 +181,20 @@ export default function MembershipPlansPage() {
   }
 
   async function handleSubmit(values: MembershipPlanFormValues) {
-    await new Promise((resolve) => setTimeout(resolve, 700))
-    const now = new Date().toISOString()
-    const fields = membershipPlanFromFormValues(values)
-
-    setPlans((previous) => {
-      if (editingPlan === null) {
-        return [
-          {
-            id: crypto.randomUUID(),
-            ...fields,
-            createdAt: now,
-            updatedAt: now,
-          },
-          ...previous,
-        ]
-      }
-      return previous.map((plan) =>
-        plan.id === editingPlan.id
-          ? { ...plan, ...fields, updatedAt: now }
-          : plan
-      )
-    })
+    const item = await saveRecord<MembershipPlan>("membership-plans", values, editingPlan?.id)
+    setPlans(previous => editingPlan ? previous.map(row => row.id === item.id ? item : row) : [item, ...previous])
     setFormOpen(false)
-    toast({
-      variant: "success",
-      title: editingPlan === null ? "Plan added" : "Plan updated",
-      description:
-        editingPlan === null
-          ? `${values.name} added to the plans list.`
-          : `Changes to ${values.name} saved.`,
-    })
+    toast({variant:"success",title:"Saved to database"})
   }
 
-  function handleDelete() {
-    if (deletingPlan === null) return
-    const removed = deletingPlan
-    setPlans((previous) =>
-      previous.filter((plan) => plan.id !== removed.id)
-    )
-    setDeletingPlan(null)
-    toast({
-      variant: "success",
-      title: "Plan deleted",
-      description: `${removed.name} removed from the plans list.`,
-    })
+  async function handleDelete() {
+    if (!deletingPlan) return
+    try {
+      await recordAction("membership-plans", deletingPlan.id)
+      setPlans(previous => previous.filter(row => row.id !== deletingPlan.id))
+      setDeletingPlan(null)
+      toast({variant:"success",title:"Record deleted"})
+    } catch (err) { toast({variant:"error",title:"Delete failed",description:err instanceof Error?err.message:"Try again"}) }
   }
 
   return (

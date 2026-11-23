@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRecords, saveRecord, recordAction } from "@/hooks/use-records"
 import {
   BookOpen,
   ChevronDown,
@@ -18,20 +19,12 @@ import { useToast } from "@/components/ui/toast"
 import { DeleteBookDialog } from "@/components/books/delete-book-dialog"
 import { BookFormDialog } from "@/components/books/book-form-dialog"
 import { LoanFormDialog } from "@/components/loans/loan-form-dialog"
-import {
-  bookFromFormValues,
-  type Book,
+import {  type Book,
   type BookFormValues,
 } from "@/lib/books"
-import {
-  loanFromFormValues,
-  type Loan,
+import {  type Loan,
   type LoanFormValues,
 } from "@/lib/loans"
-import { SEED_BOOKS } from "@/lib/mocks/books"
-import { SEED_MEMBERS } from "@/lib/mocks/members"
-import { SEED_LOANS } from "@/lib/mocks/loans-seed"
-import { SEED_MEMBERSHIP_PLANS } from "@/lib/mocks/membership-plans-seed"
 
 const PAGE_SIZE = 8
 
@@ -103,7 +96,9 @@ function Pagination({
 }
 
 export default function BooksPage() {
-  const [books, setBooks] = useState<Book[]>(SEED_BOOKS)
+  const [catalogMembers] = useRecords<import("@/lib/members").Member>("members")
+  const [catalogMembersHIP_PLANS] = useRecords<import("@/lib/membership-plans").MembershipPlan>("membership-plans")
+  const [books, setBooks] = useRecords<Book>("books")
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState("")
   const [languageFilter, setLanguageFilter] = useState("all")
@@ -115,7 +110,7 @@ export default function BooksPage() {
   const [lendingBook, setLendingBook] = useState<Book | null>(null)
   const [loanFormOpen, setLoanFormOpen] = useState(false)
   const [loanFormKey, setLoanFormKey] = useState(0)
-  const [loans, setLoans] = useState<Loan[]>(SEED_LOANS)
+  const [loans] = useRecords<Loan>("loans")
   const toast = useToast()
 
   const query = search.trim().toLowerCase()
@@ -185,58 +180,20 @@ export default function BooksPage() {
   }
 
   async function handleSubmit(values: BookFormValues) {
-    await new Promise((resolve) => setTimeout(resolve, 700))
-    const now = new Date().toISOString()
-    const fields = bookFromFormValues(values)
-    const totalCopies = Number(values.totalCopies)
-
-    setBooks((previous) => {
-      if (editingBook === null) {
-        return [
-          {
-            id: crypto.randomUUID(),
-            ...fields,
-            totalCopies,
-            availableCopies: totalCopies,
-            createdAt: now,
-            updatedAt: now,
-          },
-          ...previous,
-        ]
-      }
-      return previous.map((book) =>
-        book.id === editingBook.id
-          ? {
-              ...book,
-              ...fields,
-              totalCopies,
-              availableCopies: Math.min(book.availableCopies, totalCopies),
-              updatedAt: now,
-            }
-          : book
-      )
-    })
+    const item = await saveRecord<Book>("books", values, editingBook?.id)
+    setBooks(previous => editingBook ? previous.map(row => row.id === item.id ? item : row) : [item, ...previous])
     setFormOpen(false)
-    toast({
-      variant: "success",
-      title: editingBook === null ? "Book added" : "Book updated",
-      description:
-        editingBook === null
-          ? `"${values.title}" added to the catalog.`
-          : `Changes to "${values.title}" saved.`,
-    })
+    toast({variant:"success",title:"Saved to database"})
   }
 
-  function handleDelete() {
-    if (deletingBook === null) return
-    const removed = deletingBook
-    setBooks((previous) => previous.filter((book) => book.id !== removed.id))
-    setDeletingBook(null)
-    toast({
-      variant: "success",
-      title: "Book deleted",
-      description: `"${removed.title}" removed from the catalog.`,
-    })
+  async function handleDelete() {
+    if (!deletingBook) return
+    try {
+      await recordAction("books", deletingBook.id)
+      setBooks(previous => previous.filter(row => row.id !== deletingBook.id))
+      setDeletingBook(null)
+      toast({variant:"success",title:"Record deleted"})
+    } catch (err) { toast({variant:"error",title:"Delete failed",description:err instanceof Error?err.message:"Try again"}) }
   }
 
   // Pre-open the loan form for this book, or do nothing if no copies are left.
@@ -251,42 +208,10 @@ export default function BooksPage() {
   // AND decrements availableCopies.  The dialog validates business rules
   // (free copy, borrowing limit) via validateLoan before this runs.
   async function handleLendSubmit(values: LoanFormValues) {
-    if (lendingBook === null || lendingBook.availableCopies === 0) return
-    const lent = lendingBook
-    const now = new Date().toISOString()
-    // Simulated network latency so the "Saving\u2026" spinner reads naturally.
-    await new Promise((resolve) => setTimeout(resolve, 700))
-    const fields = loanFromFormValues(values)
-
-    // 1) Create the real loan record so Circulation can see it.
-    setLoans((previous) => [
-      {
-        id: crypto.randomUUID(),
-        ...fields,
-        createdAt: now,
-        updatedAt: now,
-      },
-      ...previous,
-    ])
-    // 2) Decrement the book's available copy count.
-    setBooks((previous) =>
-      previous.map((book) =>
-        book.id === lent.id
-          ? {
-              ...book,
-              availableCopies: book.availableCopies - 1,
-              updatedAt: now,
-            }
-          : book
-      )
-    )
+    await saveRecord<Loan>("loans", values)
     setLendingBook(null)
     setLoanFormOpen(false)
-    toast({
-      variant: "success",
-      title: "Copy lent",
-      description: `"${lent.title}" issued. ${lent.availableCopies - 1} of ${lent.totalCopies} copies available.`,
-    })
+    toast({variant:"success",title:"Copy issued and saved"})
   }
 
   return (
@@ -501,9 +426,9 @@ export default function BooksPage() {
         open={loanFormOpen}
         loan={null}
         books={books}
-        members={SEED_MEMBERS}
+        members={catalogMembers}
         loans={loans}
-        plans={SEED_MEMBERSHIP_PLANS}
+        plans={catalogMembersHIP_PLANS}
         defaultBookId={lendingBook?.id}
         onOpenChange={(open) => {
           setLoanFormOpen(open)

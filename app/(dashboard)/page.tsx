@@ -1,3 +1,8 @@
+"use client"
+import { useRecords } from "@/hooks/use-records"
+import type { Book } from "@/lib/books"
+import type { Member } from "@/lib/members"
+import type { Loan } from "@/lib/loans"
 import {
   ArrowUpRight,
   BookOpen,
@@ -29,41 +34,45 @@ import { ActivityChart } from "@/components/dashboard/activity-chart"
 const STATS = [
   {
     label: "Total Books",
-    value: "142",
+    value: "0",
     accent: "bg-accent-purple",
     icon: BookOpen,
   },
   {
     label: "Total Members",
-    value: "44",
+    value: "0",
     accent: "bg-accent-green",
     icon: Users,
   },
   {
     label: "Issued Books",
-    value: "28",
+    value: "0",
     accent: "bg-primary",
     icon: ArrowUpRight,
   },
   {
     label: "Reserved Books",
-    value: "13",
+    value: "—",
     accent: "bg-warning",
     icon: Ticket,
   },
   {
     label: "Overdue Loans",
-    value: "5",
+    value: "0",
     accent: "bg-danger",
     icon: Clock,
   },
 ]
 
 export default function DashboardPage() {
+  const [books] = useRecords<Book>("books")
+  const [members] = useRecords<Member>("members")
+  const [loans] = useRecords<Loan>("loans")
+  const values = [books.length, members.length, loans.filter(l => l.status !== "returned").length, "—", loans.filter(l => l.status === "overdue").length]
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-2 gap-5 md:grid-cols-3 xl:grid-cols-5">
-        {STATS.map((stat) => {
+        {STATS.map((stat, index) => {
           const Icon = stat.icon
           return (
             <Card key={stat.label}>
@@ -75,7 +84,7 @@ export default function DashboardPage() {
                 </span>
                 <div>
                   <div className="text-2xl font-bold tabular-nums text-text-primary">
-                    {stat.value}
+                    {values[index]}
                   </div>
                   <div className="text-[13px] font-medium text-text-secondary">
                     {stat.label}
@@ -104,7 +113,7 @@ export default function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle>Activity Feed</CardTitle>
-            <CardDescription>Latest actions in the library.</CardDescription>
+            <CardDescription>Recent actions in this browser.</CardDescription>
           </CardHeader>
           <CardContent>
             <ActivityFeed />

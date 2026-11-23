@@ -29,7 +29,7 @@ import {
   type MemberFormErrors,
   type MemberFormValues,
 } from "@/lib/members"
-import { MOCK_MEMBERSHIP_PLANS } from "@/lib/mocks/membership-plans"
+import { useRecords } from "@/hooks/use-records"
 
 interface MemberFormDialogProps {
   open: boolean
@@ -46,6 +46,7 @@ export function MemberFormDialog({
   onOpenChange,
   onSubmit,
 }: MemberFormDialogProps) {
+  const [membershipPlans] = useRecords<import("@/lib/membership-plans").MembershipPlan>("membership-plans")
   const editing = member !== null
   const uid = useId()
   const toast = useToast()
@@ -86,11 +87,11 @@ export function MemberFormDialog({
     setIsSaving(true)
     try {
       await onSubmit(cleaned)
-    } catch {
+    } catch (err) {
       toast({
         variant: "error",
         title: "Couldn't save the member",
-        description: "Something went wrong. Please try again.",
+        description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
       })
     } finally {
       setIsSaving(false)
@@ -271,7 +272,7 @@ export function MemberFormDialog({
               >
                 <MembershipSelect
                   id={`${uid}-membershipId`}
-                  plans={MOCK_MEMBERSHIP_PLANS}
+                  plans={membershipPlans}
                   value={values.membershipId}
                   onChange={(membershipId) =>
                     update("membershipId", membershipId)

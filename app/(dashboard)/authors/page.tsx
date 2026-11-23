@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRecords, saveRecord, recordAction } from "@/hooks/use-records"
 import {
   ChevronDown,
   ChevronLeft,
@@ -16,12 +17,9 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/toast"
 import { DeleteAuthorDialog } from "@/components/authors/delete-author-dialog"
 import { AuthorFormDialog } from "@/components/authors/author-form-dialog"
-import {
-  authorFromFormValues,
-  type Author,
+import {  type Author,
   type AuthorFormValues,
 } from "@/lib/authors"
-import { SEED_AUTHORS } from "@/lib/mocks/authors"
 
 const PAGE_SIZE = 8
 
@@ -120,7 +118,7 @@ function Pagination({
 }
 
 export default function AuthorsPage() {
-  const [authors, setAuthors] = useState<Author[]>(SEED_AUTHORS)
+  const [authors, setAuthors] = useRecords<Author>("authors")
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState("")
   const [nationalityFilter, setNationalityFilter] = useState("all")
@@ -186,55 +184,20 @@ export default function AuthorsPage() {
   }
 
   async function handleSubmit(values: AuthorFormValues) {
-    await new Promise((resolve) => setTimeout(resolve, 700))
-    const now = new Date().toISOString()
-    const fields = authorFromFormValues(values)
-
-    setAuthors((previous) => {
-      if (editingAuthor === null) {
-        return [
-          {
-            id: crypto.randomUUID(),
-            ...fields,
-            createdAt: now,
-            updatedAt: now,
-          },
-          ...previous,
-        ]
-      }
-      return previous.map((author) =>
-        author.id === editingAuthor.id
-          ? {
-              ...author,
-              ...fields,
-              updatedAt: now,
-            }
-          : author
-      )
-    })
+    const item = await saveRecord<Author>("authors", values, editingAuthor?.id)
+    setAuthors(previous => editingAuthor ? previous.map(row => row.id === item.id ? item : row) : [item, ...previous])
     setFormOpen(false)
-    toast({
-      variant: "success",
-      title: editingAuthor === null ? "Author added" : "Author updated",
-      description:
-        editingAuthor === null
-          ? `${values.firstName} ${values.lastName} added to the authors list.`
-          : `Changes to ${values.firstName} ${values.lastName} saved.`,
-    })
+    toast({variant:"success",title:"Saved to database"})
   }
 
-  function handleDelete() {
-    if (deletingAuthor === null) return
-    const removed = deletingAuthor
-    setAuthors((previous) =>
-      previous.filter((author) => author.id !== removed.id)
-    )
-    setDeletingAuthor(null)
-    toast({
-      variant: "success",
-      title: "Author deleted",
-      description: `${removed.firstName} ${removed.lastName} removed from the authors list.`,
-    })
+  async function handleDelete() {
+    if (!deletingAuthor) return
+    try {
+      await recordAction("authors", deletingAuthor.id)
+      setAuthors(previous => previous.filter(row => row.id !== deletingAuthor.id))
+      setDeletingAuthor(null)
+      toast({variant:"success",title:"Record deleted"})
+    } catch (err) { toast({variant:"error",title:"Delete failed",description:err instanceof Error?err.message:"Try again"}) }
   }
 
   return (
