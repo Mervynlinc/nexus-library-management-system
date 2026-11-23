@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRecords, recordAction } from "@/hooks/use-records"
 import {
   BadgeCheck,
   ChevronDown,
@@ -21,9 +22,6 @@ import {
   type Fine,
   type FineStatus,
 } from "@/lib/fines"
-import { SEED_BOOKS } from "@/lib/mocks/books"
-import { SEED_FINES } from "@/lib/mocks/fines-seed"
-import { SEED_MEMBERS } from "@/lib/mocks/members"
 
 const PAGE_SIZE = 8
 
@@ -116,7 +114,9 @@ function Pagination({
 }
 
 export default function FinesPage() {
-  const [fines, setFines] = useState<Fine[]>(SEED_FINES)
+  const [catalogBooks] = useRecords<import("@/lib/books").Book>("books")
+  const [catalogMembers] = useRecords<import("@/lib/members").Member>("members")
+  const [fines, setFines] = useRecords<Fine>("fines")
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | FineStatus>("all")
@@ -128,8 +128,8 @@ export default function FinesPage() {
 
   function matchesSearch(fine: Fine): boolean {
     if (!query) return true
-    const book = SEED_BOOKS.find((b) => b.id === fine.bookId)
-    const member = SEED_MEMBERS.find((m) => m.id === fine.memberId)
+    const book = catalogBooks.find((b) => b.id === fine.bookId)
+    const member = catalogMembers.find((m) => m.id === fine.memberId)
     const bookTitle = book?.title ?? ""
     const memberName = member
       ? `${member.firstName} ${member.lastName}`
@@ -165,35 +165,20 @@ export default function FinesPage() {
     setPage(1)
   }
 
-  function handleMarkPaid() {
-    if (markingPaid === null) return
-    const now = new Date().toISOString()
-    setFines((previous) =>
-      previous.map((fine) =>
-        fine.id === markingPaid.id
-          ? { ...fine, status: "paid", updatedAt: now }
-          : fine
-      )
-    )
-    setMarkingPaid(null)
-    toast({
-      variant: "success",
-      title: "Fine marked as paid",
-      description: "The payment has been recorded.",
-    })
+  async function handleMarkPaid() {
+    if (!markingPaid) return
+    try { await recordAction("fines", markingPaid.id, "pay"); setMarkingPaid(null); toast({variant:"success",title:"Payment saved"}) }
+    catch (err) { toast({variant:"error",title:"Payment failed",description:err instanceof Error?err.message:"Try again"}) }
   }
 
-  function handleDelete() {
-    if (deletingFine === null) return
-    setFines((previous) =>
-      previous.filter((fine) => fine.id !== deletingFine.id)
-    )
-    setDeletingFine(null)
-    toast({
-      variant: "success",
-      title: "Fine record deleted",
-      description: "The fine record has been permanently removed.",
-    })
+  async function handleDelete() {
+    if (!deletingFine) return
+    try {
+      await recordAction("fines", deletingFine.id)
+      setFines(previous => previous.filter(row => row.id !== deletingFine.id))
+      setDeletingFine(null)
+      toast({variant:"success",title:"Record deleted"})
+    } catch (err) { toast({variant:"error",title:"Delete failed",description:err instanceof Error?err.message:"Try again"}) }
   }
 
   return (
@@ -292,8 +277,8 @@ export default function FinesPage() {
               </tr>
             ) : (
               visibleFines.map((fine) => {
-                const book = SEED_BOOKS.find((b) => b.id === fine.bookId)
-                const member = SEED_MEMBERS.find(
+                const book = catalogBooks.find((b) => b.id === fine.bookId)
+                const member = catalogMembers.find(
                   (m) => m.id === fine.memberId
                 )
 
@@ -361,8 +346,8 @@ export default function FinesPage() {
 
       <MarkPaidDialog
         fine={markingPaid}
-        books={SEED_BOOKS}
-        members={SEED_MEMBERS}
+        books={catalogBooks}
+        members={catalogMembers}
         onOpenChange={(open) => {
           if (!open) setMarkingPaid(null)
         }}
@@ -370,8 +355,8 @@ export default function FinesPage() {
       />
       <DeleteFineDialog
         fine={deletingFine}
-        books={SEED_BOOKS}
-        members={SEED_MEMBERS}
+        books={catalogBooks}
+        members={catalogMembers}
         onOpenChange={(open) => {
           if (!open) setDeletingFine(null)
         }}

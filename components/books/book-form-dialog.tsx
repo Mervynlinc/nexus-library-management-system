@@ -29,7 +29,7 @@ import {
   type BookFormValues,
   validateBook,
 } from "@/lib/books"
-import { MOCK_PUBLISHERS } from "@/lib/mocks/publishers"
+import { useRecords } from "@/hooks/use-records"
 
 interface BookFormDialogProps {
   open: boolean
@@ -46,6 +46,7 @@ export function BookFormDialog({
   onOpenChange,
   onSubmit,
 }: BookFormDialogProps) {
+  const [publishers] = useRecords<import("@/lib/publishers").Publisher>("publishers")
   const editing = book !== null
   const uid = useId()
   const toast = useToast()
@@ -86,11 +87,11 @@ export function BookFormDialog({
     setIsSaving(true)
     try {
       await onSubmit(cleaned)
-    } catch {
+    } catch (err) {
       toast({
         variant: "error",
         title: "Couldn't save the book",
-        description: "Something went wrong. Please try again.",
+        description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
       })
     } finally {
       setIsSaving(false)
@@ -256,7 +257,7 @@ export function BookFormDialog({
             >
               <PublisherSelect
                 id={`${uid}-publisher`}
-                publishers={MOCK_PUBLISHERS}
+                publishers={publishers}
                 value={values.publisherId}
                 onChange={(publisherId) =>
                   update("publisherId", publisherId)

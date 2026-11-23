@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRecords, saveRecord, recordAction } from "@/hooks/use-records"
 import {
   ChevronDown,
   ChevronLeft,
@@ -16,22 +17,14 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/toast"
 import { DeleteMemberDialog } from "@/components/members/delete-member-dialog"
 import { MemberFormDialog } from "@/components/members/member-form-dialog"
-import {
-  memberFromFormValues,
-  type Member,
+import {  type Member,
   type MemberFormValues,
   type MemberStatus,
 } from "@/lib/members"
-import { SEED_MEMBERS } from "@/lib/mocks/members"
-import { MOCK_MEMBERSHIP_PLANS } from "@/lib/mocks/membership-plans"
 
 const PAGE_SIZE = 8
 
-function membershipName(membershipId: string): string {
-  return (
-    MOCK_MEMBERSHIP_PLANS.find((plan) => plan.id === membershipId)?.name ?? "—"
-  )
-}
+
 
 function memberInitials(member: Member): string {
   const first = member.firstName.trim().charAt(0)
@@ -132,7 +125,13 @@ function Pagination({
 }
 
 export default function MembersPage() {
-  const [members, setMembers] = useState<Member[]>(SEED_MEMBERS)
+function membershipName(membershipId: string): string {
+  return (
+    membershipPlans.find((plan) => plan.id === membershipId)?.name ?? "—"
+  )
+}
+  const [membershipPlans] = useRecords<import("@/lib/membership-plans").MembershipPlan>("membership-plans")
+  const [members, setMembers] = useRecords<Member>("members")
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState("")
   const [nationalityFilter, setNationalityFilter] = useState("all")
@@ -208,57 +207,20 @@ export default function MembersPage() {
   }
 
   async function handleSubmit(values: MemberFormValues) {
-    await new Promise((resolve) => setTimeout(resolve, 700))
-    const now = new Date().toISOString()
-    const fields = memberFromFormValues(values)
-
-    setMembers((previous) => {
-      if (editingMember === null) {
-        return [
-          {
-            id: crypto.randomUUID(),
-            memberNumber: values.memberNumber,
-            ...fields,
-            status: "active",
-            createdAt: now,
-            updatedAt: now,
-          },
-          ...previous,
-        ]
-      }
-      return previous.map((member) =>
-        member.id === editingMember.id
-          ? {
-              ...member,
-              ...fields,
-              updatedAt: now,
-            }
-          : member
-      )
-    })
+    const item = await saveRecord<Member>("members", values, editingMember?.id)
+    setMembers(previous => editingMember ? previous.map(row => row.id === item.id ? item : row) : [item, ...previous])
     setFormOpen(false)
-    toast({
-      variant: "success",
-      title: editingMember === null ? "Member added" : "Member updated",
-      description:
-        editingMember === null
-          ? `${values.firstName} ${values.lastName} added to the patrons list.`
-          : `Changes to ${values.firstName} ${values.lastName} saved.`,
-    })
+    toast({variant:"success",title:"Saved to database"})
   }
 
-  function handleDelete() {
-    if (deletingMember === null) return
-    const removed = deletingMember
-    setMembers((previous) =>
-      previous.filter((member) => member.id !== removed.id)
-    )
-    setDeletingMember(null)
-    toast({
-      variant: "success",
-      title: "Member deleted",
-      description: `${removed.firstName} ${removed.lastName} removed from the patrons list.`,
-    })
+  async function handleDelete() {
+    if (!deletingMember) return
+    try {
+      await recordAction("members", deletingMember.id)
+      setMembers(previous => previous.filter(row => row.id !== deletingMember.id))
+      setDeletingMember(null)
+      toast({variant:"success",title:"Record deleted"})
+    } catch (err) { toast({variant:"error",title:"Delete failed",description:err instanceof Error?err.message:"Try again"}) }
   }
 
   return (
@@ -318,7 +280,7 @@ export default function MembersPage() {
               className="h-11 appearance-none rounded-[10px] border border-border bg-surface pr-9 pl-3 text-sm text-text-primary focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-hidden"
             >
               <option value="all">All membership plans</option>
-              {MOCK_MEMBERSHIP_PLANS.map((plan) => (
+              {membershipPlans.map((plan) => (
                 <option key={plan.id} value={plan.id}>
                   {plan.name}
                 </option>

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Button from "@/components/ui/Button/Button";
 import TextInput from "@/components/ui/TextInput/TextInput";
+import { apiFetch } from "@/lib/api";
 
 interface LoginFormState {
   username: string;
@@ -17,15 +19,18 @@ const ERROR_MESSAGES = {
 };
 
 /**
- * Stub only — no backend/auth exists yet (see AGENTS.md build order).
- * Replaced by a real POST /api/login once the Express server is built.
- * Currently always rejects so the invalid-credentials error state renders.
+ * Calls the Express login endpoint. On success, Express sets an HttpOnly JWT
+ * cookie (`nexus_token`) so subsequent API calls are authenticated.
  */
-function loginRequest(): Promise<void> {
-  return Promise.reject(new Error(ERROR_MESSAGES.invalid));
+function loginRequest(credentials: LoginFormState): Promise<void> {
+  return apiFetch("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify(credentials),
+  }).then(() => undefined);
 }
 
 export default function LoginPage() {
+  const router = useRouter();
   const [form, setForm] = useState<LoginFormState>({
     username: "",
     password: "",
@@ -36,6 +41,7 @@ export default function LoginPage() {
     password?: string;
   }>({});
   const [isShaking, setIsShaking] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function update<K extends keyof LoginFormState>(
     key: K,
@@ -47,6 +53,7 @@ export default function LoginPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSubmitting) return;
 
     const nextErrors: typeof errors = {};
     if (!form.username.trim()) {
@@ -62,14 +69,21 @@ export default function LoginPage() {
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      await loginRequest();
+      await loginRequest({
+        username: form.username.trim(),
+        password: form.password,
+      });
+      router.replace("/");
     } catch (err) {
       setErrors({
         password:
           err instanceof Error ? err.message : ERROR_MESSAGES.invalid,
       });
       setIsShaking(true);
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -235,8 +249,8 @@ export default function LoginPage() {
               </a>
             </div>
 
-            <Button type="submit" fullWidth>
-              Login
+            <Button type="submit" fullWidth disabled={isSubmitting}>
+              {isSubmitting ? "Signing in…" : "Login"}
             </Button>
           </form>
         </div>

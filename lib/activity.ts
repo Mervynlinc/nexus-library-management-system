@@ -29,43 +29,6 @@ const MAX_ACTIVITIES = 50
 const EVENT_NAME = "nexus-lms-activity"
 
 /**
- * How old the seed entries should be, in minutes from the moment they are
- * first created. This makes the sample data "age" consistently across
- * Reloads ("Just now" ... "26 hrs ago").
- */
-const SEED_MINUTES = [2, 18, 60, 180, 26 * 60]
-
-/**
- * Starter data so the feed isn't empty on the very first visit.
- * Only ever written when storage holds nothing yet.
- */
-const SEED_ACTIVITIES: Pick<
-  ActivityItem,
-  "title" | "description" | "variant"
->[] = [
-  {
-    variant: "success",
-    title: 'J. Carter returned "The Pragmatic Programmer"',
-  },
-  {
-    variant: "success",
-    title: "New member M. Okoro registered",
-  },
-  {
-    variant: "success",
-    title: "Book #B-034 checked out to A. Silva",
-  },
-  {
-    variant: "error",
-    title: "Fine of $2.50 waived for member P. Novak",
-  },
-  {
-    variant: "success",
-    title: '3 copies added to "Clean Architecture"',
-  },
-]
-
-/**
  * Reads the feed from localStorage. Returns null when nothing is stored yet.
  *
  * SSR-safe (returns null when `window` is undefined) and never throws: on any
@@ -99,21 +62,7 @@ function readStoredFeed(): ActivityItem[] | null {
  * is stored, which is exactly what stops seeds from duplicating on reload.
  */
 export function getActivityFeed(): ActivityItem[] {
-  const stored = readStoredFeed()
-  if (stored) return stored
-
-  const now = Date.now()
-  const seeds: ActivityItem[] = SEED_ACTIVITIES.map((entry, index) => ({
-    id: `seed-${index}`,
-    ...entry,
-    timestamp: now - SEED_MINUTES[index] * 60_000,
-  }))
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seeds))
-  } catch {
-    // Storage may be unavailable (private mode); the feed still works in-memory.
-  }
-  return seeds
+  return (readStoredFeed() ?? []).filter(item => !item.id.startsWith("seed-"))
 }
 
 /**

@@ -3,6 +3,8 @@
 import { BookMarked } from "lucide-react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
+import { apiFetch } from "@/lib/api"
+import { useToast } from "@/components/ui/toast"
 
 import {
   Sidebar,
@@ -21,6 +23,15 @@ import { dashboardNav } from "@/config/nav"
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const toast = useToast()
+  async function logout() {
+    try {
+      await apiFetch("/api/auth/logout", { method: "POST" })
+      window.location.replace("/login")
+    } catch (err) {
+      toast({ variant: "error", title: "Sign out failed", description: err instanceof Error ? err.message : "Try again" })
+    }
+  }
 
   return (
     <Sidebar collapsible="icon">
@@ -84,9 +95,9 @@ export function AppSidebar() {
               tooltip="Sign out"
               className="text-muted-foreground"
             >
-              <Link href="/login">
+              <button onClick={logout}>
                 <span>Sign out</span>
-              </Link>
+              </button>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

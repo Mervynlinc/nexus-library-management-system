@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { SessionProvider } from "@/components/dashboard/session-provider"
 
 import {
   SidebarInset,
@@ -13,7 +14,7 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
-    <SidebarProvider>
+    <SessionProvider><SidebarProvider>
       <AppSidebar />
       <SidebarInset>
         <DashboardHeader />
@@ -21,6 +22,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="p-6 md:p-8">{children}</div>
         </div>
       </SidebarInset>
-    </SidebarProvider>
+    </SidebarProvider></SessionProvider>
   )
 }

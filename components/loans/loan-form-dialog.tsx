@@ -136,11 +136,11 @@ export function LoanFormDialog({
     try {
       // Delegate persistence to the page: it owns loans/books state.
       await onSubmit(cleaned)
-    } catch {
+    } catch (err) {
       toast({
         variant: "error",
         title: "Couldn't save the loan",
-        description: "Something went wrong. Please try again.",
+        description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
       })
     } finally {
       setIsSaving(false)

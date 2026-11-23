@@ -88,11 +88,11 @@ export function PublisherFormDialog({
     setIsSaving(true)
     try {
       await onSubmit(cleaned)
-    } catch {
+    } catch (err) {
       toast({
         variant: "error",
         title: "Couldn't save the publisher",
-        description: "Something went wrong. Please try again.",
+        description: err instanceof Error ? err.message : "Something went wrong. Please try again.",
       })
     } finally {
       setIsSaving(false)

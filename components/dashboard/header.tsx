@@ -1,9 +1,6 @@
+"use client"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-
-const CURRENT_USER = {
-  name: "Jane Carter",
-  role: "Administrator",
-} as const
+import { useSession } from "./session-provider"
 
 function initials(name: string) {
   return name
@@ -14,6 +11,8 @@ function initials(name: string) {
 }
 
 export function DashboardHeader() {
+  const user = useSession()
+  const CURRENT_USER = { name: user?.username || "", role: user?.role || "" }
   return (
     <header className="flex shrink-0 items-center justify-between gap-4 px-6 py-4 md:px-8">
       <div className="flex min-w-0 items-center gap-3">

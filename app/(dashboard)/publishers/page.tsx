@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRecords, saveRecord, recordAction } from "@/hooks/use-records"
 import {
   ChevronDown,
   ChevronLeft,
@@ -16,12 +17,9 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/toast"
 import { DeletePublisherDialog } from "@/components/publishers/delete-publisher-dialog"
 import { PublisherFormDialog } from "@/components/publishers/publisher-form-dialog"
-import {
-  publisherFromFormValues,
-  type Publisher,
+import {  type Publisher,
   type PublisherFormValues,
 } from "@/lib/publishers"
-import { SEED_PUBLISHERS } from "@/lib/mocks/publishers-seed"
 
 const PAGE_SIZE = 8
 
@@ -93,7 +91,7 @@ function Pagination({
 }
 
 export default function PublishersPage() {
-  const [publishers, setPublishers] = useState<Publisher[]>(SEED_PUBLISHERS)
+  const [publishers, setPublishers] = useRecords<Publisher>("publishers")
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState("")
   const [countryFilter, setCountryFilter] = useState("all")
@@ -162,52 +160,20 @@ export default function PublishersPage() {
   }
 
   async function handleSubmit(values: PublisherFormValues) {
-    await new Promise((resolve) => setTimeout(resolve, 700))
-    const now = new Date().toISOString()
-    const fields = publisherFromFormValues(values)
-
-    setPublishers((previous) => {
-      if (editingPublisher === null) {
-        return [
-          {
-            id: crypto.randomUUID(),
-            ...fields,
-            createdAt: now,
-            updatedAt: now,
-          },
-          ...previous,
-        ]
-      }
-      return previous.map((publisher) =>
-        publisher.id === editingPublisher.id
-          ? { ...publisher, ...fields, updatedAt: now }
-          : publisher
-      )
-    })
+    const item = await saveRecord<Publisher>("publishers", values, editingPublisher?.id)
+    setPublishers(previous => editingPublisher ? previous.map(row => row.id === item.id ? item : row) : [item, ...previous])
     setFormOpen(false)
-    toast({
-      variant: "success",
-      title:
-        editingPublisher === null ? "Publisher added" : "Publisher updated",
-      description:
-        editingPublisher === null
-          ? `${values.name} added to the publishers list.`
-          : `Changes to ${values.name} saved.`,
-    })
+    toast({variant:"success",title:"Saved to database"})
   }
 
-  function handleDelete() {
-    if (deletingPublisher === null) return
-    const removed = deletingPublisher
-    setPublishers((previous) =>
-      previous.filter((publisher) => publisher.id !== removed.id)
-    )
-    setDeletingPublisher(null)
-    toast({
-      variant: "success",
-      title: "Publisher deleted",
-      description: `${removed.name} removed from the publishers list.`,
-    })
+  async function handleDelete() {
+    if (!deletingPublisher) return
+    try {
+      await recordAction("publishers", deletingPublisher.id)
+      setPublishers(previous => previous.filter(row => row.id !== deletingPublisher.id))
+      setDeletingPublisher(null)
+      toast({variant:"success",title:"Record deleted"})
+    } catch (err) { toast({variant:"error",title:"Delete failed",description:err instanceof Error?err.message:"Try again"}) }
   }
 
   return (
